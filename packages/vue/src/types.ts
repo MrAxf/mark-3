@@ -1,6 +1,6 @@
 import type { BaseTransitionProps, Component } from 'vue';
 import type { Element } from 'hast';
-import type { ParseOptions } from '@mark-3/markdown-parser';
+import type { ParseOptions } from '@mark-sorcery/markdown-parser';
 
 export type { ParseOptions };
 
@@ -64,7 +64,7 @@ export type Components =
  * `<Markdown>`. Use this to type your custom component's `node` prop.
  *
  * @example
- * import type { NodeProps } from '@mark-3/vue'
+ * import type { NodeProps } from '@mark-sorcery/vue'
  * const props = defineProps<NodeProps>()
  * // props.node is the raw HAST Element
  */

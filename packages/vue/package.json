@@ -1,6 +1,12 @@
 {
-  "name": "@mark-3/vue",
+  "name": "@mark-sorcery/vue",
   "version": "0.1.0",
+  "description": "Vue renderer for Mark Sorcery markdown.",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -12,12 +18,16 @@
       "require": "./dist/index.cjs"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsdown",
+    "prepublishOnly": "bun run build && bun run test",
     "test": "vitest run"
   },
   "dependencies": {
-    "@mark-3/markdown-parser": "workspace:*"
+    "@mark-sorcery/markdown-parser": "^0.1.0"
   },
   "devDependencies": {
     "@types/hast": "^3.0.4",

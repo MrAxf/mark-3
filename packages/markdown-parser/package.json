@@ -1,6 +1,12 @@
 {
-  "name": "@mark-3/markdown-parser",
+  "name": "@mark-sorcery/markdown-parser",
   "version": "0.1.0",
+  "description": "Markdown to HAST parser used by Mark Sorcery.",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -12,9 +18,13 @@
       "require": "./dist/index.cjs"
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsdown",
     "dev": "bun run src/index.ts",
+    "prepublishOnly": "bun run build && bun run test",
     "test": "vitest run"
   },
   "dependencies": {

@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mark-3/vue": "workspace:*",
+    "@mark-sorcery/vue": "workspace:*",
     "mermaid": "^11.12.3",
     "shiki": "^4.0.1",
     "vue": "^3.5.25"

@@ -9,5 +9,7 @@ export default defineConfig({
   treeshake: true,
   minify: false,
   sourcemap: true,
-  external: ['vue'],
+  deps: {
+    neverBundle: ['vue'],
+  },
 });

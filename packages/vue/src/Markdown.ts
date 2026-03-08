@@ -1,5 +1,5 @@
 import { computed, defineComponent, Fragment, h, markRaw } from 'vue';
-import { parse } from '@mark-3/markdown-parser';
+import { parse } from '@mark-sorcery/markdown-parser';
 import { hastToVNodes } from './hast-to-vnodes.ts';
 import type { Components, MarkdownProps, ParseOptions, TransitionConfig } from './types.ts';
 
