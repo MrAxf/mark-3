@@ -1,0 +1,33 @@
+{
+  "name": "@mark-3/vue",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mark-3/markdown-parser": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/hast": "^3.0.4",
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^17.4.4",
+    "tsdown": "^0.21.0",
+    "vue": "^3.5.25"
+  },
+  "peerDependencies": {
+    "typescript": "^5",
+    "vue": "^3.5"
+  }
+}
