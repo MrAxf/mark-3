@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mark-sorcery/plugin-add-classes": "workspace:*",
     "@mark-sorcery/vue": "workspace:*",
     "mermaid": "^11.12.3",
     "shiki": "^4.0.1",

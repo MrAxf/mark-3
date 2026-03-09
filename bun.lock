@@ -22,7 +22,7 @@
     },
     "packages/markdown-parser": {
       "name": "@mark-sorcery/markdown-parser",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "rehype-raw": "^7.0.0",
         "rehype-sanitize": "^6.0.0",
@@ -42,11 +42,27 @@
         "typescript": "^5",
       },
     },
-    "packages/vue": {
-      "name": "@mark-sorcery/vue",
+    "packages/plugin-add-classes": {
+      "name": "@mark-sorcery/plugin-add-classes",
       "version": "0.1.0",
       "dependencies": {
-        "@mark-sorcery/markdown-parser": "^0.1.0",
+        "@mark-sorcery/markdown-parser": "workspace:*",
+        "unist-util-visit": "^5.0.0",
+      },
+      "devDependencies": {
+        "@types/hast": "^3.0.4",
+        "@types/node": "^24.6.1",
+        "tsdown": "^0.21.0",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "packages/vue": {
+      "name": "@mark-sorcery/vue",
+      "version": "0.2.0",
+      "dependencies": {
+        "@mark-sorcery/markdown-parser": "^0.2.0",
       },
       "devDependencies": {
         "@types/hast": "^3.0.4",
@@ -64,6 +80,7 @@
       "name": "playground",
       "version": "0.0.0",
       "dependencies": {
+        "@mark-sorcery/plugin-add-classes": "workspace:*",
         "@mark-sorcery/vue": "workspace:*",
         "mermaid": "^11.12.3",
         "shiki": "^4.0.1",
@@ -258,6 +275,8 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@mark-sorcery/markdown-parser": ["@mark-sorcery/markdown-parser@workspace:packages/markdown-parser"],
+
+    "@mark-sorcery/plugin-add-classes": ["@mark-sorcery/plugin-add-classes@workspace:packages/plugin-add-classes"],
 
     "@mark-sorcery/vue": ["@mark-sorcery/vue@workspace:packages/vue"],
 

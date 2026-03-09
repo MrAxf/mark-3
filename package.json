@@ -7,15 +7,17 @@
     "docs"
   ],
   "scripts": {
-    "build": "bun run build:parser && bun run build:vue",
+    "build": "bun run build:parser && bun run build:classes && bun run build:vue",
+    "build:classes": "bun run --filter @mark-sorcery/plugin-add-classes build",
     "build:parser": "bun run --filter @mark-sorcery/markdown-parser build",
     "build:vue": "bun run --filter @mark-sorcery/vue build",
     "fmt": "bunx oxfmt .",
     "lint": "bunx oxlint .",
     "playground": "bun run --filter playground dev",
+    "publish:classes": "bun run --filter @mark-sorcery/plugin-add-classes prepublishOnly && cd packages/plugin-add-classes && bun publish",
     "publish:parser": "bun run --filter @mark-sorcery/markdown-parser prepublishOnly && cd packages/markdown-parser && bun publish",
     "publish:vue": "bun run --filter @mark-sorcery/vue prepublishOnly && cd packages/vue && bun publish",
-    "test": "bun run --filter @mark-sorcery/markdown-parser test && bun run --filter @mark-sorcery/vue test"
+    "test": "bun run --filter @mark-sorcery/markdown-parser test && bun run --filter @mark-sorcery/plugin-data-tags test && bun run --filter @mark-sorcery/vue test"
   },
   "devDependencies": {
     "oxfmt": "^0.36.0",

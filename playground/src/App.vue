@@ -6,6 +6,7 @@ import type { Element } from 'hast'
 import CustomCode from './components/CustomCode.vue'
 import CustomHeading from './components/CustomHeading.vue'
 import CustomMermaid from './components/CustomMermaid.vue'
+import  { createAddClassesPlugin } from '@mark-sorcery/plugin-add-classes'
 
 const SAMPLE = `# Streaming Markdown Playground
 
@@ -139,7 +140,14 @@ const processorPlugins = computed<ParserPlugin[]>(() => {
     gfm: gfm.value ? undefined : false,
     remend: remendEnabled.value ? true : false,
     sanitize: sanitizeEnabled.value ? undefined : false,
-  })]
+  }),
+  createAddClassesPlugin({
+    elements: {
+      h1: 'custom-heading',
+      pre: 'custom-pre',
+    },
+  })
+]
 
   if (accentPluginEnabled.value) {
     plugins.push(accentPlugin)
