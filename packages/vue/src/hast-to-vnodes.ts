@@ -1,7 +1,22 @@
-import { h, createCommentVNode, Transition } from 'vue';
+import { h, createCommentVNode } from 'vue';
 import type { Element, Nodes } from 'hast';
 import type { VNodeArrayChildren } from 'vue';
-import type { ComponentResolution, Components, TransitionConfig } from './types.ts';
+import type { ComponentResolution, Components } from './types.ts';
+
+function createNodeKey(node: Element, path: string): string {
+  const start = node.position?.start?.offset;
+  const end = node.position?.end?.offset;
+
+  if (typeof start === 'number' && typeof end === 'number') {
+    return `${node.tagName}:${start}-${end}`;
+  }
+
+  if (typeof start === 'number') {
+    return `${node.tagName}:${start}`;
+  }
+
+  return path;
+}
 
 /**
  * Convert HAST node properties to Vue-compatible props.
@@ -40,25 +55,25 @@ function resolveTag(node: Element, components: Components): NonNullable<Componen
 function toVNodes(
   node: Nodes | Nodes[],
   components: Components,
-  transition: TransitionConfig | undefined,
   path: string,
 ): VNodeArrayChildren {
   if (Array.isArray(node)) {
-    return node.flatMap((n, i) => toVNodes(n, components, transition, `${path}.${i}`));
+    return node.flatMap((n, i) => toVNodes(n, components, `${path}.${i}`));
   }
 
   switch (node.type) {
     case 'root':
       return node.children.flatMap((child, i) =>
-        toVNodes(child, components, transition, String(i)),
+        toVNodes(child, components, String(i)),
       );
 
     case 'element': {
       const { properties = {}, children } = node;
       const tag = resolveTag(node, components);
+      const nodeKey = createNodeKey(node, path);
       const props = convertProps(properties as Record<string, unknown>);
       const childVNodes: VNodeArrayChildren = children.flatMap((child, i) =>
-        toVNodes(child, components, transition, `${path}.${i}`),
+        toVNodes(child, components, `${path}.${i}`),
       );
 
       // Build the element VNode
@@ -66,13 +81,9 @@ function toVNodes(
       // can access the original element (e.g. to extract text content for
       // syntax highlighting or diagram rendering).
       const el = typeof tag === 'string'
-        ? h(tag, props, childVNodes)
-        : h(tag, { ...props, node }, { default: () => childVNodes });
+        ? h(tag, { ...props, key: nodeKey }, childVNodes)
+        : h(tag, { ...props, key: nodeKey, node }, { default: () => childVNodes });
 
-      // Wrap in <Transition> if requested, using the tree path as a stable key
-      if (transition !== undefined) {
-        return [h(Transition, { key: path, ...transition }, { default: () => el })];
-      }
       return [el];
     }
 
@@ -97,7 +108,6 @@ function toVNodes(
 export function hastToVNodes(
   node: Nodes | Nodes[],
   components: Components,
-  transition?: TransitionConfig,
 ): VNodeArrayChildren {
-  return toVNodes(node, components, transition, '');
+  return toVNodes(node, components, '');
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, markRaw, ref, shallowRef } from 'vue'
-import { Markdown } from '@mark-sorcery/vue'
-import type { Components, ParseOptions, TransitionConfig } from '@mark-sorcery/vue'
+import { createCorePlugin, Markdown } from '@mark-sorcery/vue'
+import type { Components, ParserPlugin } from '@mark-sorcery/vue'
 import type { Element } from 'hast'
 import CustomCode from './components/CustomCode.vue'
 import CustomHeading from './components/CustomHeading.vue'
@@ -10,6 +10,8 @@ import CustomMermaid from './components/CustomMermaid.vue'
 const SAMPLE = `# Streaming Markdown Playground
 
 Welcome! Type in the editor or hit **Simulate Stream** to watch markdown render live.
+
+Toggle the **Accent plugin** to see extra processor plugins applied by the Vue component.
 
 ## Features
 
@@ -36,9 +38,10 @@ Welcome! Type in the editor or hit **Simulate Stream** to watch markdown render 
 ## Code Block
 
 \`\`\`typescript
-import { Markdown } from '@mark-3/vue'
+import { createCorePlugin, Markdown } from '@mark-sorcery/vue'
 
 const md = ref('# Hello streaming!')
+const plugins = [createCorePlugin()]
 \`\`\`
 
 ## Mermaid Diagram
@@ -79,20 +82,71 @@ let streamTimer: ReturnType<typeof setTimeout> | null = null
 const gfm = ref(true)
 const remendEnabled = ref(true)
 const sanitizeEnabled = ref(true)
+const accentPluginEnabled = ref(false)
 
-const options = ref<ParseOptions>({
-  gfm: true,
-  remend: true,
-  sanitize: undefined,
-})
+function appendClass(node: Element, className: string) {
+  const current = node.properties?.className
+  const classes = Array.isArray(current)
+    ? current.map(value => String(value))
+    : typeof current === 'string'
+      ? current.split(/\s+/).filter(Boolean)
+      : []
 
-function updateOptions() {
-  options.value = {
-    gfm: gfm.value,
-    remend: remendEnabled.value,
-    sanitize: sanitizeEnabled.value ? undefined : false,
+  if (!classes.includes(className)) {
+    classes.push(className)
+  }
+
+  node.properties = {
+    ...node.properties,
+    className: classes,
   }
 }
+
+function walkElements(node: { children?: unknown[] }, visit: (element: Element) => void) {
+  for (const child of node.children ?? []) {
+    if (!child || typeof child !== 'object') {
+      continue
+    }
+
+    const element = child as Partial<Element>
+    if (element.type !== 'element') {
+      continue
+    }
+
+    visit(element as Element)
+    walkElements(element as { children?: unknown[] }, visit)
+  }
+}
+
+const accentPlugin: ParserPlugin = {
+  postprocess: root => {
+    walkElements(root, element => {
+      if (element.tagName === 'h2' || element.tagName === 'h3') {
+        appendClass(element, 'plugin-accent')
+      }
+
+      if (element.tagName === 'pre') {
+        appendClass(element, 'plugin-frame')
+      }
+    })
+
+    return root
+  },
+}
+
+const processorPlugins = computed<ParserPlugin[]>(() => {
+  const plugins: ParserPlugin[] = [createCorePlugin({
+    gfm: gfm.value ? undefined : false,
+    remend: remendEnabled.value ? true : false,
+    sanitize: sanitizeEnabled.value ? undefined : false,
+  })]
+
+  if (accentPluginEnabled.value) {
+    plugins.push(accentPlugin)
+  }
+
+  return plugins
+})
 
 const useCustomComponents = ref(false)
 
@@ -116,13 +170,6 @@ const activeComponents = shallowRef<Components>({})
 function toggleCustomComponents() {
   activeComponents.value = useCustomComponents.value ? componentResolver : {}
 }
-
-const transitionEnabled = ref(false)
-const transitionPreset = ref<'fade' | 'slide-up' | 'pop'>('fade')
-
-const activeTransition = computed<boolean | TransitionConfig>(() =>
-  transitionEnabled.value ? { name: transitionPreset.value, appear: true } : false,
-)
 
 function simulateStream() {
   if (streaming.value) {
@@ -190,16 +237,20 @@ function stopStream() {
 
       <div class="control-group control-checks">
         <label class="check">
-          <input v-model="gfm" type="checkbox" @change="updateOptions" />
+          <input v-model="gfm" type="checkbox" />
           <span>GFM</span>
         </label>
         <label class="check">
-          <input v-model="remendEnabled" type="checkbox" @change="updateOptions" />
+          <input v-model="remendEnabled" type="checkbox" />
           <span>remend</span>
         </label>
         <label class="check">
-          <input v-model="sanitizeEnabled" type="checkbox" @change="updateOptions" />
+          <input v-model="sanitizeEnabled" type="checkbox" />
           <span>sanitize</span>
+        </label>
+        <label class="check">
+          <input v-model="accentPluginEnabled" type="checkbox" />
+          <span>Accent plugin</span>
         </label>
       </div>
 
@@ -210,15 +261,6 @@ function stopStream() {
           <input v-model="useCustomComponents" type="checkbox" @change="toggleCustomComponents" />
           <span>Custom components</span>
         </label>
-        <label class="check">
-          <input v-model="transitionEnabled" type="checkbox" />
-          <span>Transitions</span>
-        </label>
-        <select v-if="transitionEnabled" v-model="transitionPreset" class="preset-select">
-          <option value="fade">Fade</option>
-          <option value="slide-up">Slide up</option>
-          <option value="pop">Pop</option>
-        </select>
       </div>
     </section>
 
@@ -246,9 +288,9 @@ function stopStream() {
         <div class="prose">
           <Markdown
             :markdown="markdown"
-            :options="options"
+            :plugins="processorPlugins"
+            :stream="streaming"
             :components="activeComponents"
-            :transition="activeTransition"
           />
         </div>
       </section>
@@ -317,6 +359,26 @@ function stopStream() {
   border: 3px solid #242a31;
   border-radius: 0;
   box-shadow: 6px 6px 0 #0a0c10;
+}
+
+.prose :deep(.plugin-accent) {
+  position: relative;
+  padding-left: 0.8rem;
+  color: #ffd166;
+}
+
+.prose :deep(.plugin-accent)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.1em;
+  bottom: 0.1em;
+  width: 0.3rem;
+  background: linear-gradient(180deg, #ff7b00, #ffd166);
+}
+
+.prose :deep(.plugin-frame) {
+  box-shadow: 0 0 0 2px #ff7b00;
 }
 
 .header {

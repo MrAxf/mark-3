@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import { defineComponent, h, markRaw, ref, Transition } from 'vue';
-import { Markdown } from '../Markdown.ts';
+import { defineComponent, markRaw, ref } from 'vue';
+import { createCorePlugin, Markdown, type ParserPlugin } from '../index.ts';
 
 // ─── basic rendering ─────────────────────────────────────────────────────────
 
@@ -46,27 +46,77 @@ describe('reactivity', () => {
 
 // ─── parser options ───────────────────────────────────────────────────────────
 
-describe('parser options via prop', () => {
-  it('disables GFM tables when options.gfm is false', () => {
+describe('processor plugins via prop', () => {
+  it('reexports createCorePlugin from the package entry', () => {
+    expect(createCorePlugin()).toMatchObject({});
+  });
+
+  it('disables GFM tables when the core plugin turns gfm off', () => {
     const md = '| a | b |\n|---|---|\n| c | d |';
-    const wrapper = mount(Markdown, { props: { markdown: md, options: { gfm: false } } });
+    const wrapper = mount(Markdown, {
+      props: {
+        markdown: md,
+        plugins: [createCorePlugin({ gfm: false })],
+      },
+    });
     expect(wrapper.find('table').exists()).toBe(false);
   });
 
-  it('enables GFM tables by default', () => {
+  it('renders GFM tables when the core plugin is provided', () => {
     const md = '| a | b |\n|---|---|\n| c | d |';
-    const wrapper = mount(Markdown, { props: { markdown: md } });
+    const wrapper = mount(Markdown, {
+      props: {
+        markdown: md,
+        plugins: [createCorePlugin()],
+      },
+    });
     expect(wrapper.find('table').exists()).toBe(true);
   });
 
-  it('completes incomplete markdown with remend by default', () => {
-    const wrapper = mount(Markdown, { props: { markdown: '**incomplete' } });
+  it('completes incomplete markdown when the core plugin enables remend', () => {
+    const wrapper = mount(Markdown, {
+      props: {
+        markdown: '**incomplete',
+        plugins: [createCorePlugin()],
+      },
+    });
     expect(wrapper.find('strong').exists()).toBe(true);
   });
 
-  it('does not complete markdown when options.remend is false', () => {
-    const wrapper = mount(Markdown, { props: { markdown: '**incomplete', options: { remend: false } } });
+  it('does not complete markdown when the core plugin disables remend', () => {
+    const wrapper = mount(Markdown, {
+      props: {
+        markdown: '**incomplete',
+        plugins: [createCorePlugin({ remend: false })],
+      },
+    });
     expect(wrapper.find('strong').exists()).toBe(false);
+  });
+
+  it('recomputes the processor when the plugins prop changes', async () => {
+    const headingPlugin: ParserPlugin = {
+      postprocess: (root) => {
+        const heading = root.children[0];
+        if (heading?.type === 'element' && heading.tagName === 'h1') {
+          heading.tagName = 'h2';
+        }
+        return root;
+      },
+    };
+
+    const wrapper = mount(Markdown, {
+      props: {
+        markdown: '# Title',
+        plugins: [createCorePlugin()],
+      },
+    });
+
+    expect(wrapper.find('h1').exists()).toBe(true);
+
+    await wrapper.setProps({ plugins: [headingPlugin] });
+
+    expect(wrapper.find('h1').exists()).toBe(false);
+    expect(wrapper.find('h2').text()).toBe('Title');
   });
 });
 
@@ -74,13 +124,68 @@ describe('parser options via prop', () => {
 
 describe('sanitization', () => {
   it('removes script tags by default', () => {
-    const wrapper = mount(Markdown, { props: { markdown: '<script>alert("xss")</script>' } });
+    const wrapper = mount(Markdown, {
+      props: {
+        markdown: '<script>alert("xss")</script>',
+        plugins: [createCorePlugin()],
+      },
+    });
     expect(wrapper.find('script').exists()).toBe(false);
   });
 
   it('keeps safe tags by default', () => {
-    const wrapper = mount(Markdown, { props: { markdown: '<b>safe</b>' } });
+    const wrapper = mount(Markdown, {
+      props: {
+        markdown: '<b>safe</b>',
+        plugins: [createCorePlugin()],
+      },
+    });
     expect(wrapper.find('b').exists()).toBe(true);
+  });
+});
+
+// ─── streaming ───────────────────────────────────────────────────────────────
+
+describe('streaming', () => {
+  it('reuses parse memory while the stream grows', async () => {
+    const wrapper = mount(Markdown, {
+      props: {
+        markdown: '# Title\n\n**hola',
+        plugins: [createCorePlugin()],
+        stream: true,
+      },
+    });
+
+    expect(wrapper.find('h1').text()).toBe('Title');
+    expect(wrapper.find('strong').text()).toBe('hola');
+
+    await wrapper.setProps({ markdown: '# Title\n\n**hola\n\n- item' });
+
+    expect(wrapper.find('h1').text()).toBe('Title');
+    expect(wrapper.find('strong').text()).toBe('hola');
+    expect(wrapper.find('ul').exists()).toBe(true);
+  });
+
+  it('flushes pending memory when stream changes from true to false without changing output', async () => {
+    const wrapper = mount(Markdown, {
+      props: {
+        markdown: '**hola',
+        plugins: [createCorePlugin()],
+        stream: true,
+      },
+    });
+
+    const before = wrapper.html();
+
+    await wrapper.setProps({ stream: false });
+
+    expect(wrapper.html()).toBe(before);
+    expect(wrapper.find('strong').exists()).toBe(true);
+
+    await wrapper.setProps({ markdown: 'plain text' });
+
+    expect(wrapper.find('strong').exists()).toBe(false);
+    expect(wrapper.text()).toContain('plain text');
   });
 });
 
@@ -137,58 +242,5 @@ describe('custom components', () => {
       },
     });
     expect(wrapper.find('h2').exists()).toBe(true);
-  });
-});
-
-// ─── transition ───────────────────────────────────────────────────────────────
-
-describe('transition', () => {
-  it('does not wrap elements in Transition by default', () => {
-    const wrapper = mount(Markdown, { props: { markdown: '# Hello' } });
-    expect(wrapper.findComponent(Transition).exists()).toBe(false);
-  });
-
-  it('transition: true wraps elements in Transition without errors', () => {
-    expect(() =>
-      mount(Markdown, { props: { markdown: '# Hello\n\nParagraph.', transition: true } }),
-    ).not.toThrow();
-
-    const wrapper = mount(Markdown, {
-      props: { markdown: '# Hello\n\nParagraph.', transition: true },
-    });
-    expect(wrapper.findComponent(Transition).exists()).toBe(true);
-  });
-
-  it('transition: { name: "fade" } forwards name prop to Transition components', () => {
-    const wrapper = mount(Markdown, {
-      props: { markdown: '# Hello', transition: { name: 'fade' } },
-    });
-    const transition = wrapper.findComponent(Transition);
-    expect(transition.exists()).toBe(true);
-    expect(transition.props('name')).toBe('fade');
-  });
-
-  it('transition: { appear: true } mounts without errors', () => {
-    expect(() =>
-      mount(Markdown, {
-        props: { markdown: '# Hello\n\nParagraph.', transition: { appear: true } },
-      }),
-    ).not.toThrow();
-  });
-
-  it('each element node gets its own Transition wrapper', () => {
-    const wrapper = mount(Markdown, {
-      props: { markdown: '# One\n\n## Two', transition: true },
-    });
-    const transitions = wrapper.findAllComponents(Transition);
-    // h1 and h2 are two distinct top-level elements → at least 2 Transition wrappers
-    expect(transitions.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it('transition: false leaves Transition out', () => {
-    const wrapper = mount(Markdown, {
-      props: { markdown: '# Hello', transition: false },
-    });
-    expect(wrapper.findComponent(Transition).exists()).toBe(false);
   });
 });
