@@ -10,6 +10,5 @@ export type {
     ParseMemory,
     ParseOptions,
     ParserPlugin,
-    TransitionConfig,
 } from './types.ts';
 export { hastToVNodes } from './hast-to-vnodes.ts';
