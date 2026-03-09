@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, markRaw, ref, shallowRef } from 'vue'
-import { Markdown } from '@mark-3/vue'
-import type { Components, ParseOptions, TransitionConfig } from '@mark-3/vue'
+import { Markdown } from '@mark-sorcery/vue'
+import type { Components, ParseOptions, TransitionConfig } from '@mark-sorcery/vue'
 import type { Element } from 'hast'
 import CustomCode from './components/CustomCode.vue'
 import CustomHeading from './components/CustomHeading.vue'

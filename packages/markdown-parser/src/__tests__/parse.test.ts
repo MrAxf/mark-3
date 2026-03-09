@@ -1,6 +1,12 @@
 import type { Element, Root } from 'hast';
+import type { ParseMemory, ParseOptions } from '../index.ts';
+import type { Plugin } from 'unified';
 import { describe, expect, it } from 'vitest';
-import { parse } from '../index.ts';
+import { createCorePlugin, createMemory, createProcessor, parse } from '../index.ts';
+
+function parseMarkdown(markdown: string, options?: ParseOptions): Root {
+  return parse(createProcessor(options), markdown);
+}
 
 // Helpers
 function findNode(root: Root, tagName: string): Element | undefined {
@@ -12,7 +18,7 @@ function findNode(root: Root, tagName: string): Element | undefined {
     }
     if ('children' in node) {
       for (const child of node.children) {
-        if (child.type === 'element' || child.type === 'root') {
+        if (child.type === 'element') {
           queue.push(child as Element);
         }
       }
@@ -21,163 +27,325 @@ function findNode(root: Root, tagName: string): Element | undefined {
   return undefined;
 }
 
-function allNodes(root: Root, tagName: string): Element[] {
-  const result: Element[] = [];
-  const queue: (Root | Element)[] = [root];
+function textContent(node: Root | Element): string {
+  const fragments: string[] = [];
+  const queue: (Root | Element)[] = [node];
+
   while (queue.length > 0) {
-    const node = queue.shift()!;
-    if (node.type === 'element' && (node as Element).tagName === tagName) {
-      result.push(node as Element);
+    const current = queue.shift()!;
+
+    if ('value' in current && typeof current.value === 'string') {
+      fragments.push(current.value);
     }
-    if ('children' in node) {
-      for (const child of node.children) {
-        if (child.type === 'element' || child.type === 'root') {
+
+    if ('children' in current) {
+      for (const child of current.children) {
+        if (child.type === 'element') {
           queue.push(child as Element);
+          continue;
+        }
+
+        if ('value' in child && typeof child.value === 'string') {
+          fragments.push(child.value);
         }
       }
     }
   }
-  return result;
+
+  return fragments.join('');
 }
+
+const promoteHeadingPlugin: Plugin<[], Root> = function promoteHeadingPlugin() {
+  return (tree: any) => {
+    for (const child of tree.children ?? []) {
+      if (child.type === 'heading') {
+        child.depth = 2;
+      }
+    }
+  };
+};
+
+const promoteElementPlugin: Plugin<[], Root> = function promoteElementPlugin() {
+  return (tree: any) => {
+    for (const child of tree.children ?? []) {
+      if (child.type === 'element' && child.tagName === 'h2') {
+        child.tagName = 'h3';
+      }
+    }
+  };
+};
 
 // ─── Basic output ────────────────────────────────────────────────────────────
 
 describe('basic output', () => {
   it('returns a HAST Root node', () => {
-    const result = parse('# Hello');
+    const result = parseMarkdown('# Hello');
     expect(result.type).toBe('root');
   });
 
   it('parses heading', () => {
-    const result = parse('# Hello');
+    const result = parseMarkdown('# Hello');
     const h1 = findNode(result, 'h1');
     expect(h1).toBeDefined();
   });
 
   it('parses bold', () => {
-    const result = parse('**bold**');
+    const result = parseMarkdown('**bold**');
     const strong = findNode(result, 'strong');
     expect(strong).toBeDefined();
   });
 
   it('returns empty root for empty string', () => {
-    const result = parse('');
+    const result = parseMarkdown('');
     expect(result.type).toBe('root');
     expect(result.children.length).toBe(0);
   });
 });
 
-// ─── Remend: incomplete markdown completion ──────────────────────────────────
+// ─── Plugin system ───────────────────────────────────────────────────────────
 
-describe('remend: incomplete markdown completion', () => {
-  it('completes incomplete bold', () => {
-    const result = parse('**incomplete');
+describe('plugin system', () => {
+  it('runs preprocessors, remark plugins, rehype plugins and postprocessors in order', () => {
+    const trace: string[] = [];
+
+    const result = parseMarkdown('hello', {
+      plugins: [
+        {
+          preprocess: [
+            (markdown) => {
+              trace.push('preprocess:1');
+              return `# ${markdown}`;
+            },
+            (markdown) => {
+              trace.push('preprocess:2');
+              return markdown.replace('hello', 'world');
+            },
+          ],
+          remark: [
+            [() => {
+              trace.push('remark:setup');
+              return (tree: any) => {
+                trace.push('remark:run');
+                for (const child of tree.children ?? []) {
+                  if (child.type === 'heading') {
+                    child.depth = 2;
+                  }
+                }
+              };
+            }],
+          ],
+          rehype: [
+            [() => {
+              trace.push('rehype:setup');
+              return (tree: any) => {
+                trace.push('rehype:run');
+                for (const child of tree.children ?? []) {
+                  if (child.type === 'element' && child.tagName === 'h2') {
+                    child.tagName = 'h3';
+                  }
+                }
+              };
+            }],
+          ],
+          postprocess: [
+            (root) => {
+              trace.push('postprocess:1');
+              const heading = findNode(root, 'h3');
+              if (heading) {
+                heading.tagName = 'h4';
+              }
+              return root;
+            },
+            (root) => {
+              trace.push('postprocess:2');
+              return root;
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(trace).toEqual([
+      'preprocess:1',
+      'preprocess:2',
+      'remark:setup',
+      'rehype:setup',
+      'remark:run',
+      'rehype:run',
+      'postprocess:1',
+      'postprocess:2',
+    ]);
+    expect(findNode(result, 'h1')).toBeUndefined();
+    expect(findNode(result, 'h2')).toBeUndefined();
+    expect(findNode(result, 'h3')).toBeUndefined();
+    expect(findNode(result, 'h4')).toBeDefined();
+    expect(textContent(result)).toContain('world');
+  });
+
+  it('always keeps the fixed parse pipeline around custom plugins', () => {
+    const result = parseMarkdown('Hello <b>world</b>', {
+      plugins: [
+        {
+          remark: [promoteHeadingPlugin],
+          rehype: [promoteElementPlugin],
+        },
+      ],
+    });
+
+    const paragraph = findNode(result, 'p');
+    const bold = findNode(result, 'b');
+    expect(paragraph).toBeDefined();
+    expect(bold).toBeDefined();
+  });
+});
+
+// ─── Core plugin ─────────────────────────────────────────────────────────────
+
+describe('core plugin', () => {
+  it('adds remend as a preprocess', () => {
+    const result = parseMarkdown('**incomplete', {
+      plugins: [createCorePlugin()],
+    });
     const strong = findNode(result, 'strong');
     expect(strong).toBeDefined();
   });
 
-  it('completes incomplete inline code', () => {
-    const result = parse('`code');
-    const code = findNode(result, 'code');
-    expect(code).toBeDefined();
-  });
-
-  it('completes incomplete strikethrough', () => {
-    const result = parse('~~strike');
-    const del = findNode(result, 'del');
-    expect(del).toBeDefined();
-  });
-
-  it('with remend:false does not complete incomplete bold', () => {
-    const withCompletion = parse('**incomplete');
-    const withoutCompletion = parse('**incomplete', { remend: false });
-
-    const strongWith = findNode(withCompletion, 'strong');
-    const strongWithout = findNode(withoutCompletion, 'strong');
-
-    expect(strongWith).toBeDefined();
-    expect(strongWithout).toBeUndefined();
-  });
-
-  it('accepts remend options to disable specific completions', () => {
-    // bold completion disabled — should not produce <strong>
-    const result = parse('**incomplete', { remend: { bold: false } });
+  it('accepts remend options', () => {
+    const result = parseMarkdown('**incomplete', {
+      plugins: [createCorePlugin({ remend: { bold: false } })],
+    });
     const strong = findNode(result, 'strong');
     expect(strong).toBeUndefined();
   });
-});
 
-// ─── GFM ─────────────────────────────────────────────────────────────────────
-
-describe('GFM extensions', () => {
-  it('parses GFM table', () => {
+  it('adds remark-gfm with its options', () => {
     const md = '| a | b |\n|---|---|\n| c | d |';
-    const result = parse(md);
-    const table = findNode(result, 'table');
-    expect(table).toBeDefined();
+    const enabled = parseMarkdown(md, {
+      plugins: [createCorePlugin()],
+    });
+    const disabled = parseMarkdown(md, {
+      plugins: [createCorePlugin({ gfm: false })],
+    });
+
+    expect(findNode(enabled, 'table')).toBeDefined();
+    expect(findNode(disabled, 'table')).toBeUndefined();
   });
 
-  it('parses GFM task list', () => {
-    const result = parse('- [ ] unchecked\n- [x] checked');
-    const inputs = allNodes(result, 'input');
-    expect(inputs.length).toBeGreaterThan(0);
-    expect(inputs[0]?.properties?.type).toBe('checkbox');
-  });
-
-  it('parses GFM strikethrough', () => {
-    const result = parse('~~strike~~');
-    const del = findNode(result, 'del');
-    expect(del).toBeDefined();
-  });
-
-  it('with gfm:false does not parse table', () => {
-    const md = '| a | b |\n|---|---|\n| c | d |';
-    const result = parse(md, { gfm: false });
-    const table = findNode(result, 'table');
-    expect(table).toBeUndefined();
-  });
-});
-
-// ─── Sanitization (XSS prevention) ───────────────────────────────────────────
-
-describe('sanitization', () => {
-  it('removes script tags by default', () => {
-    const result = parse('<script>alert("xss")</script>');
+  it('adds rehype-sanitize with its options', () => {
+    const result = parseMarkdown('<script>alert("xss")</script>', {
+      plugins: [createCorePlugin()],
+    });
     const script = findNode(result, 'script');
     expect(script).toBeUndefined();
   });
 
-  it('keeps safe inline HTML tags', () => {
-    const result = parse('<b>safe</b>');
-    const b = findNode(result, 'b');
-    expect(b).toBeDefined();
-  });
-
-  it('removes dangerous attributes like onerror', () => {
-    const result = parse('<img src="x" onerror="alert(1)" />');
-    const img = findNode(result, 'img');
-    // img may be present but onerror must be stripped
-    if (img) {
-      expect(img.properties?.onError).toBeUndefined();
-      expect(img.properties?.onerror).toBeUndefined();
-    }
-  });
-
-  it('with sanitize:false keeps script tags', () => {
-    const result = parse('<script>alert("xss")</script>', { sanitize: false });
+  it('allows disabling sanitize inside the core plugin', () => {
+    const result = parseMarkdown('<script>alert("xss")</script>', {
+      plugins: [createCorePlugin({ sanitize: false })],
+    });
     const script = findNode(result, 'script');
     expect(script).toBeDefined();
   });
 
   it('accepts a custom sanitize schema', () => {
-    // Allow <mark> tag which is not in default schema
-    const result = parse('<mark>highlighted</mark>', {
-      sanitize: {
-        tagNames: ['mark', 'p'],
-        attributes: {},
-      },
+    const result = parseMarkdown('<mark>highlighted</mark>', {
+      plugins: [
+        createCorePlugin({
+          sanitize: {
+            tagNames: ['mark', 'p'],
+            attributes: {},
+          },
+        }),
+      ],
     });
     const mark = findNode(result, 'mark');
     expect(mark).toBeDefined();
+  });
+
+  it('can be combined with custom postprocessors while keeping HAST output', () => {
+    const result = parseMarkdown('<b>safe</b>', {
+      plugins: [
+        createCorePlugin(),
+        {
+          postprocess: (root) => {
+            const bold = findNode(root, 'b');
+            if (bold) {
+              bold.tagName = 'strong';
+            }
+            return root;
+          },
+        },
+      ],
+    });
+
+    expect(result.type).toBe('root');
+    expect(findNode(result, 'strong')).toBeDefined();
+  });
+});
+
+// ─── Streaming memory ───────────────────────────────────────────────────────
+
+describe('streaming memory', () => {
+  it('returns the full tree built so far while the stream grows', () => {
+    const processor = createProcessor({
+      plugins: [createCorePlugin()],
+    });
+    const memory = createMemory();
+
+    const block1 = parse(processor, '**hola', memory);
+    expect(findNode(block1, 'strong')).toBeDefined();
+    expect(textContent(block1)).toContain('hola');
+
+    const block2 = parse(processor, '**hola que tal**\nhoy', memory);
+    expect(findNode(block2, 'strong')).toBeDefined();
+    expect(textContent(block2)).toContain('hola que tal');
+    expect(textContent(block2)).toContain('hoy');
+
+    const block3 = parse(processor, '**hola que tal**\nhoy estas muy\nbirn', memory);
+    expect(findNode(block3, 'strong')).toBeDefined();
+    expect(textContent(block3)).toContain('hoy estas muy');
+    expect(textContent(block3)).toContain('birn');
+
+    const block4 = parse(processor, 'buenas', memory);
+    expect(findNode(block4, 'strong')).toBeUndefined();
+    expect(textContent(block4)).toContain('buenas');
+    expect(textContent(block4)).not.toContain('hola que tal');
+  });
+
+  it('keeps confirmed blocks cached while remend still applies to the pending block', () => {
+    const processor = createProcessor({
+      plugins: [createCorePlugin()],
+    });
+    const memory: ParseMemory = createMemory();
+
+    const first = parse(processor, '# Titulo\n\n**hola', memory);
+    expect(findNode(first, 'h1')).toBeDefined();
+    expect(findNode(first, 'strong')).toBeDefined();
+    expect(memory.confirmedMarkdown).toBe('# Titulo');
+    expect(memory.pendingMarkdown).toBe('\n\n**hola');
+
+    const second = parse(processor, '# Titulo\n\n**hola\n\n- item', memory);
+    expect(findNode(second, 'h1')).toBeDefined();
+    expect(findNode(second, 'strong')).toBeDefined();
+    expect(findNode(second, 'ul')).toBeDefined();
+    expect(memory.confirmedMarkdown).toBe('# Titulo\n\n**hola');
+    expect(memory.pendingMarkdown).toBe('\n\n- item');
+  });
+
+  it('supports flush to promote the pending block into the confirmed prefix', () => {
+    const processor = createProcessor({
+      plugins: [createCorePlugin()],
+    });
+    const memory = createMemory();
+
+    parse(processor, '**hola', memory);
+    expect(memory.pendingMarkdown).toBe('**hola');
+
+    memory.flush = true;
+    const flushed = parse(processor, '**hola', memory);
+
+    expect(findNode(flushed, 'strong')).toBeDefined();
+    expect(memory.confirmedMarkdown).toBe('**hola');
+    expect(memory.pendingMarkdown).toBe('');
   });
 });

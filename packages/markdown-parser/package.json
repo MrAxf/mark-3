@@ -22,6 +22,7 @@
     "access": "public"
   },
   "scripts": {
+    "benchmark": "bun run src/benchmark.ts",
     "build": "tsdown",
     "dev": "bun run src/index.ts",
     "prepublishOnly": "bun run build && bun run test",
