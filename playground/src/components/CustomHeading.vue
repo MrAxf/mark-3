@@ -1,12 +1,23 @@
 <script setup lang="ts">
-defineProps<{ class?: string }>()
+import { NodeList, useMarkdown, type ElementProps } from "@mark-sorcery/vue";
+
+const { element, nodeIdx, deep, nodeKey } = defineProps<ElementProps>();
+const { components, transition } = useMarkdown();
 </script>
 
 <template>
-  <h2 class="custom-heading">
+  <component :is="element.tagName" class="custom-heading" v-bind="element.properties">
     <span class="accent" aria-hidden="true">▣</span>
-    <slot />
-  </h2>
+    <NodeList
+      :nodes="element.children"
+      :node-idx="nodeIdx"
+      :deep="deep"
+      :node-key="nodeKey"
+      :parent-node="element"
+      :components="components"
+      :transition="transition"
+    />
+  </component>
 </template>
 
 <style scoped>

@@ -1,6 +1,6 @@
 {
   "name": "@mark-sorcery/vue",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Vue renderer for Mark Sorcery markdown.",
   "license": "MIT",
   "files": [
@@ -27,7 +27,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@mark-sorcery/markdown-parser": "^0.4.0"
+    "@mark-sorcery/markdown-parser": "^0.4.2",
+    "unified": "^11.0.5",
+    "unist-util-remove": "^4.0.0"
   },
   "devDependencies": {
     "@types/hast": "^3.0.4",

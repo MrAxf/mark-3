@@ -1,45 +1,55 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { codeToHtml } from 'shiki'
-import type { Element, Text } from 'hast'
+import type { Element, Text } from "hast";
 
-const props = defineProps<{ node?: Element }>()
+import { type ElementProps } from "@mark-sorcery/vue";
+import { codeToHtml } from "shiki";
+import { computed, ref, watch } from "vue";
+
+import CustomMermaid from "./CustomMermaid.vue";
+
+const props = defineProps<ElementProps>();
 
 const lang = computed(() => {
-  const codeEl = props.node?.children?.[0] as Element | undefined
-  const classes = (codeEl?.properties?.className as string[] | undefined) ?? []
-  return classes.find(c => c.startsWith('language-'))?.slice(9) ?? 'text'
-})
+  const codeEl = props.element?.children?.[0] as Element | undefined;
+  const classes = (codeEl?.properties?.className as string[] | undefined) ?? [];
+  return classes.find((c) => c.startsWith("language-"))?.slice(9) ?? "text";
+});
 
 const code = computed(() => {
-  const codeEl = props.node?.children?.[0] as Element | undefined
-  const textNode = codeEl?.children?.[0] as Text | undefined
-  return textNode?.type === 'text' ? textNode.value : ''
-})
+  const codeEl = props.element?.children?.[0] as Element | undefined;
+  const textNode = codeEl?.children?.[0] as Text | undefined;
+  return textNode?.type === "text" ? textNode.value : "";
+});
 
-const highlighted = ref('')
+const highlighted = ref("");
 
 watch(
   [lang, code],
   async ([l, c]) => {
+    if (l === "mermaid") {
+      highlighted.value = "";
+      return;
+    }
+
     if (!c) {
-      highlighted.value = `<pre class="shiki"><code>${c}</code></pre>`
-      return
+      highlighted.value = `<pre class="shiki"><code>${c}</code></pre>`;
+      return;
     }
     try {
-      highlighted.value = await codeToHtml(c, { lang: l, theme: 'github-dark' })
+      highlighted.value = await codeToHtml(c, { lang: l, theme: "github-dark" });
     } catch {
       // Unsupported language — fall back to plain text
-      highlighted.value = await codeToHtml(c, { lang: 'text', theme: 'github-dark' })
+      highlighted.value = await codeToHtml(c, { lang: "text", theme: "github-dark" });
     }
   },
   { immediate: true },
-)
+);
 </script>
 
 <template>
+  <CustomMermaid v-if="lang === 'mermaid'" :code="code" />
   <!-- eslint-disable-next-line vue/no-v-html -->
-  <div class="shiki-wrapper" v-html="highlighted" />
+  <div v-else class="shiki-wrapper" v-html="highlighted" />
 </template>
 
 <style scoped>
@@ -62,6 +72,6 @@ watch(
 }
 
 .shiki-wrapper :deep(code) {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
 }
 </style>

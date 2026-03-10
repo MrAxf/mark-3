@@ -7,6 +7,7 @@ import type {
 } from './types.ts';
 import NodeList from './components/NodeList.vue';
 import { useProvideMarkdown } from './composables/markdown.ts';
+import { removeLineJumpNodesPlugin } from './plugins/remove-line-jump-nodes.ts';
 
 export const Markdown = defineComponent({
   name: 'Markdown',
@@ -49,7 +50,7 @@ export const Markdown = defineComponent({
 
       return createProcessor({
         ...options,
-        plugins: propPlugins,
+        plugins: [...propPlugins, removeLineJumpNodesPlugin()],
       });
     });
 

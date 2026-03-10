@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { computed, markRaw, ref, shallowRef } from 'vue'
-import { createCorePlugin, Markdown } from '@mark-sorcery/vue'
-import type { Components, ParserPlugin } from '@mark-sorcery/vue'
-import type { Element } from 'hast'
-import CustomCode from './components/CustomCode.vue'
-import CustomHeading from './components/CustomHeading.vue'
-import CustomMermaid from './components/CustomMermaid.vue'
-import  { createAddClassesPlugin } from '@mark-sorcery/plugin-add-classes'
+import type { MarkdownProps, ParserPlugin } from "@mark-sorcery/vue";
+import type { Element } from "hast";
+
+import { createAddClassesPlugin } from "@mark-sorcery/plugin-add-classes";
+import { createCorePlugin, Markdown } from "@mark-sorcery/vue";
+import { computed, markRaw, ref } from "vue";
+
+import CustomCode from "./components/CustomCode.vue";
+import CustomHeading from "./components/CustomHeading.vue";
+
+type PostprocessFn = Extract<
+  NonNullable<ParserPlugin["postprocess"]>,
+  (...args: never[]) => unknown
+>;
 
 const SAMPLE = `# Streaming Markdown Playground
 
@@ -53,7 +59,7 @@ flowchart LR
   B --> C[MDAST]
   C --> D[rehype]
   D --> E[HAST]
-  E --> F[VNodes]
+  E --> F[Vue components]
   F --> G[DOM]
 \`\`\`
 
@@ -65,146 +71,151 @@ sequenceDiagram
   participant Markdown
   participant Parser
   User->>Markdown: :markdown prop
-  Markdown->>Parser: parseMarkdown()
+  Markdown->>Parser: parse(processor, markdown)
   Parser-->>Markdown: HAST Root
-  Markdown-->>User: VNodes rendered
+  Markdown-->>User: nested components rendered
 \`\`\`
 
 ## Inline HTML (sanitized)
 
 <b>Bold HTML</b> and <em>italic HTML</em> are kept.
 Dangerous tags like \`<iframe>\`, \`<script>\` and event attributes are stripped by rehype-sanitize.
-`
+`;
 
-const markdown = ref(SAMPLE)
-const streaming = ref(false)
-let streamTimer: ReturnType<typeof setTimeout> | null = null
+const markdown = ref(SAMPLE);
+const streaming = ref(false);
+let streamTimer: ReturnType<typeof setTimeout> | null = null;
 
-const gfm = ref(true)
-const remendEnabled = ref(true)
-const sanitizeEnabled = ref(true)
-const accentPluginEnabled = ref(false)
+const gfm = ref(true);
+const remendEnabled = ref(true);
+const sanitizeEnabled = ref(true);
+const accentPluginEnabled = ref(false);
+const transitionsEnabled = ref(true);
+
+const markdownTransition = computed(() => {
+  if (!transitionsEnabled.value) {
+    return false;
+  }
+
+  return {
+    name: "forge-fade",
+  };
+});
 
 function appendClass(node: Element, className: string) {
-  const current = node.properties?.className
+  const current = node.properties?.className;
   const classes = Array.isArray(current)
-    ? current.map(value => String(value))
-    : typeof current === 'string'
+    ? current.map((value) => String(value))
+    : typeof current === "string"
       ? current.split(/\s+/).filter(Boolean)
-      : []
+      : [];
 
   if (!classes.includes(className)) {
-    classes.push(className)
+    classes.push(className);
   }
 
   node.properties = {
     ...node.properties,
     className: classes,
-  }
+  };
 }
 
 function walkElements(node: { children?: unknown[] }, visit: (element: Element) => void) {
   for (const child of node.children ?? []) {
-    if (!child || typeof child !== 'object') {
-      continue
+    if (!child || typeof child !== "object") {
+      continue;
     }
 
-    const element = child as Partial<Element>
-    if (element.type !== 'element') {
-      continue
+    const element = child as Partial<Element>;
+    if (element.type !== "element") {
+      continue;
     }
 
-    visit(element as Element)
-    walkElements(element as { children?: unknown[] }, visit)
+    visit(element as Element);
+    walkElements(element as { children?: unknown[] }, visit);
   }
 }
 
 const accentPlugin: ParserPlugin = {
-  postprocess: root => {
-    walkElements(root, element => {
-      if (element.tagName === 'h2' || element.tagName === 'h3') {
-        appendClass(element, 'plugin-accent')
+  postprocess: (root: Parameters<PostprocessFn>[0]) => {
+    walkElements(root, (element) => {
+      if (element.tagName === "h2" || element.tagName === "h3") {
+        appendClass(element, "plugin-accent");
       }
 
-      if (element.tagName === 'pre') {
-        appendClass(element, 'plugin-frame')
+      if (element.tagName === "pre") {
+        appendClass(element, "plugin-frame");
       }
-    })
+    });
 
-    return root
+    return root;
   },
-}
+};
 
 const processorPlugins = computed<ParserPlugin[]>(() => {
-  const plugins: ParserPlugin[] = [createCorePlugin({
-    gfm: gfm.value ? undefined : false,
-    remend: remendEnabled.value ? true : false,
-    sanitize: sanitizeEnabled.value ? undefined : false,
-  }),
-  createAddClassesPlugin({
-    elements: {
-      h1: 'custom-heading',
-      pre: 'custom-pre',
-    },
-  })
-]
+  const plugins: ParserPlugin[] = [
+    createCorePlugin({
+      gfm: gfm.value ? undefined : false,
+      remend: remendEnabled.value ? true : false,
+      sanitize: sanitizeEnabled.value ? undefined : false,
+    }),
+    createAddClassesPlugin({
+      elements: {
+        h1: "custom-heading",
+        pre: "custom-pre",
+      },
+    }),
+  ];
 
   if (accentPluginEnabled.value) {
-    plugins.push(accentPlugin)
+    plugins.push(accentPlugin);
   }
 
-  return plugins
-})
+  return plugins;
+});
 
-const useCustomComponents = ref(false)
+const useCustomComponents = ref(true);
 
-const componentResolver: Components = (node: Element) => {
-  if (node.tagName === 'h1' || node.tagName === 'h2' || node.tagName === 'h3') {
-    return markRaw(CustomHeading)
+const customComponents = {
+  h2: markRaw(CustomHeading),
+  h3: markRaw(CustomHeading),
+  pre: markRaw(CustomCode),
+} satisfies NonNullable<MarkdownProps["components"]>;
+
+const activeComponents = computed<NonNullable<MarkdownProps["components"]>>(() => {
+  if (!useCustomComponents.value) {
+    return {} as NonNullable<MarkdownProps["components"]>;
   }
-  if (node.tagName === 'pre') {
-    const codeEl = node.children.find(
-      (c): c is Element => c.type === 'element' && c.tagName === 'code',
-    )
-    const classes = (codeEl?.properties?.className as string[] | undefined) ?? []
-    if (classes.includes('language-mermaid')) return markRaw(CustomMermaid)
-    if (classes.some(c => c.startsWith('language-'))) return markRaw(CustomCode)
-  }
-  return undefined
-}
 
-const activeComponents = shallowRef<Components>({})
-
-function toggleCustomComponents() {
-  activeComponents.value = useCustomComponents.value ? componentResolver : {}
-}
+  return customComponents;
+});
 
 function simulateStream() {
   if (streaming.value) {
-    stopStream()
-    return
+    stopStream();
+    return;
   }
-  markdown.value = ''
-  streaming.value = true
-  let i = 0
+  markdown.value = "";
+  streaming.value = true;
+  let i = 0;
 
   function tick() {
     if (i >= SAMPLE.length) {
-      streaming.value = false
-      return
+      streaming.value = false;
+      return;
     }
-    const chunk = SAMPLE.slice(i, i + 3)
-    markdown.value += chunk
-    i += 3
-    streamTimer = setTimeout(tick, 16)
+    const chunk = SAMPLE.slice(i, i + 3);
+    markdown.value += chunk;
+    i += 3;
+    streamTimer = setTimeout(tick, 20);
   }
-  tick()
+  tick();
 }
 
 function stopStream() {
-  if (streamTimer) clearTimeout(streamTimer)
-  streaming.value = false
-  markdown.value = SAMPLE
+  if (streamTimer) clearTimeout(streamTimer);
+  streaming.value = false;
+  markdown.value = SAMPLE;
 }
 </script>
 
@@ -227,7 +238,7 @@ function stopStream() {
         <div>
           <p class="panel-kicker">prototype bay // mk3</p>
           <h1 class="title">MARK-3 <span>PLAYGROUND</span></h1>
-          <p class="subtitle">streaming markdown -> HAST -> Vue VNodes</p>
+          <p class="subtitle">streaming markdown -> HAST -> nested Vue components</p>
         </div>
       </div>
       <code class="header-badge">@mark-3/vue</code>
@@ -236,7 +247,7 @@ function stopStream() {
     <section class="controls brutal-block" aria-label="Markdown controls">
       <div class="control-group">
         <button class="btn btn-primary" :class="{ active: streaming }" @click="simulateStream">
-          {{ streaming ? 'Stop stream' : 'Simulate stream' }}
+          {{ streaming ? "Stop stream" : "Simulate stream" }}
         </button>
         <button class="btn" @click="markdown = SAMPLE">Reset</button>
       </div>
@@ -260,14 +271,13 @@ function stopStream() {
           <input v-model="accentPluginEnabled" type="checkbox" />
           <span>Accent plugin</span>
         </label>
-      </div>
-
-      <span class="group-divider" aria-hidden="true" />
-
-      <div class="control-group control-checks">
         <label class="check">
-          <input v-model="useCustomComponents" type="checkbox" @change="toggleCustomComponents" />
+          <input v-model="useCustomComponents" type="checkbox" />
           <span>Custom components</span>
+        </label>
+        <label class="check">
+          <input v-model="transitionsEnabled" type="checkbox" />
+          <span>Transitions</span>
         </label>
       </div>
     </section>
@@ -290,7 +300,7 @@ function stopStream() {
       <section class="panel panel-output brutal-block">
         <header class="panel-label">
           <span class="label-title">Output</span>
-          <span class="label-meta">HAST -> VNodes</span>
+          <span class="label-meta">HAST -> components</span>
           <span v-if="streaming" class="live-badge">Live</span>
         </header>
         <div class="prose">
@@ -299,6 +309,7 @@ function stopStream() {
             :plugins="processorPlugins"
             :stream="streaming"
             :components="activeComponents"
+            :transition="markdownTransition"
           />
         </div>
       </section>
@@ -376,7 +387,7 @@ function stopStream() {
 }
 
 .prose :deep(.plugin-accent)::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 0.1em;
@@ -387,6 +398,18 @@ function stopStream() {
 
 .prose :deep(.plugin-frame) {
   box-shadow: 0 0 0 2px #ff7b00;
+}
+
+.prose :deep(.forge-fade-enter-active) {
+  transition: opacity 500ms ease;
+}
+
+.prose :deep(.forge-fade-enter-from) {
+  opacity: 0;
+}
+
+.prose :deep(.forge-fade-enter-to) {
+  opacity: 1;
 }
 
 .header {
@@ -444,7 +467,8 @@ function stopStream() {
 }
 
 @keyframes corePulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 8px rgba(125, 211, 252, 0.45);
   }
   50% {
@@ -455,7 +479,7 @@ function stopStream() {
 .title {
   margin: 0;
   font-size: clamp(1.2rem, 1.3vw + 0.8rem, 1.75rem);
-  font-family: 'Bebas Neue', 'Rajdhani', Impact, sans-serif;
+  font-family: "Bebas Neue", "Rajdhani", Impact, sans-serif;
   font-weight: 700;
   color: #ff5f5f;
   letter-spacing: 0.07em;
@@ -473,7 +497,7 @@ function stopStream() {
   font-size: 0.72rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
 }
 
 .subtitle {
@@ -490,7 +514,7 @@ function stopStream() {
   padding: 6px 12px;
   font-size: 0.76rem;
   font-weight: 700;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   white-space: nowrap;
   text-transform: uppercase;
   box-shadow: 3px 3px 0 #081722;
@@ -567,7 +591,9 @@ function stopStream() {
 
 .btn-primary.active {
   background: linear-gradient(180deg, #d33a3f, #981922);
-  box-shadow: 3px 3px 0 #0a0c11, 0 0 18px rgba(211, 58, 63, 0.4);
+  box-shadow:
+    3px 3px 0 #0a0c11,
+    0 0 18px rgba(211, 58, 63, 0.4);
 }
 
 .preset-select {
@@ -615,14 +641,14 @@ function stopStream() {
 
 .label-title {
   color: #f9f1e9;
-  font-family: 'Bebas Neue', 'Rajdhani', Impact, sans-serif;
+  font-family: "Bebas Neue", "Rajdhani", Impact, sans-serif;
   font-size: 1.05rem;
   letter-spacing: 0.08em;
 }
 
 .label-meta {
   margin-left: auto;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 0.77rem;
   color: #d8c9bc;
 }
@@ -648,7 +674,7 @@ function stopStream() {
   color: #ece3da;
   background: #0c1016;
   padding: 14px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 0.9rem;
   line-height: 1.65;
 }
@@ -718,7 +744,7 @@ function stopStream() {
   border-radius: 0;
   padding: 1px 6px;
   color: #ff9999;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 0.86em;
 }
 
@@ -808,7 +834,9 @@ function stopStream() {
 }
 
 .prose :deep(.slide-up-enter-active) {
-  transition: opacity 0.35s ease, transform 0.35s ease;
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
 }
 
 .prose :deep(.slide-up-enter-from) {
@@ -817,7 +845,9 @@ function stopStream() {
 }
 
 .prose :deep(.pop-enter-active) {
-  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .prose :deep(.pop-enter-from) {

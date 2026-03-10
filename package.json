@@ -17,7 +17,10 @@
     "publish:classes": "bun run --filter @mark-sorcery/plugin-add-classes prepublishOnly && cd packages/plugin-add-classes && bun publish",
     "publish:parser": "bun run --filter @mark-sorcery/markdown-parser prepublishOnly && cd packages/markdown-parser && bun publish",
     "publish:vue": "bun run --filter @mark-sorcery/vue prepublishOnly && cd packages/vue && bun publish",
-    "test": "bun run --filter @mark-sorcery/markdown-parser test && bun run --filter @mark-sorcery/plugin-data-tags test && bun run --filter @mark-sorcery/vue test"
+    "test": "bun run test:classes && bun run test:parser && bun run test:vue",
+    "test:classes": "bun run --filter @mark-sorcery/plugin-add-classes test",
+    "test:parser": "bun run --filter @mark-sorcery/markdown-parser test",
+    "test:vue": "bun run --filter @mark-sorcery/vue test"
   },
   "devDependencies": {
     "oxfmt": "^0.36.0",

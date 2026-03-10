@@ -1,7 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h, markRaw, ref } from 'vue';
 import { describe, expect, it } from 'vitest';
-import { createCorePlugin } from '../../../markdown-parser/src/index.ts';
+import { createCorePlugin, useMarkdown } from '../index.ts';
+import type { ParserPlugin } from '../types.ts';
 import {
   createRecursiveComponent,
   MarkdownHarness,
@@ -62,8 +63,8 @@ describe('Markdown', () => {
   });
 
   it('reconstruye el processor cuando cambia plugins', async () => {
-    const headingPlugin = {
-      postprocess: (root: { children: Array<{ type: string; tagName?: string }> }) => {
+    const headingPlugin: ParserPlugin = {
+      postprocess: (root) => {
         const heading = root.children[0];
         if (heading?.type === 'element' && heading.tagName === 'h1') {
           heading.tagName = 'h2';
@@ -167,14 +168,18 @@ describe('Markdown', () => {
     const CustomHeading = markRaw(defineComponent({
       name: 'CustomHeading',
       props: ['element', 'nodeIdx', 'deep', 'nodeKey', 'parentNode'],
-      render() {
-        return h('h1', { 'data-test-tag': 'custom-heading' }, [
+      setup(props) {
+        const { components, transition } = useMarkdown();
+
+        return () => h('h1', { 'data-test-tag': 'custom-heading' }, [
           h(NodeList, {
-            nodes: this.element.children,
-            nodeIdx: this.nodeIdx,
-            deep: this.deep,
-            nodeKey: this.nodeKey,
-            parentNode: this.element,
+            nodes: props.element.children,
+            nodeIdx: props.nodeIdx,
+            deep: props.deep,
+            nodeKey: props.nodeKey,
+            parentNode: props.element,
+            components: components.value,
+            transition: transition.value,
           }),
         ]);
       },
