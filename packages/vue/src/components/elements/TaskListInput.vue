@@ -3,6 +3,8 @@ import { computed } from "vue";
 
 import type { ElementProps } from "../../types";
 
+import { elementPropertiesToProps } from "../utils/elementPropertiesToProps";
+
 defineOptions({
   inheritAttrs: false,
 });
@@ -10,10 +12,7 @@ defineOptions({
 const { element } = defineProps<ElementProps>();
 
 const properties = computed(() => {
-  return {
-    checked: element.properties.checked,
-    class: element.properties.class,
-  } as any;
+  return elementPropertiesToProps(element.properties);
 });
 </script>
 

@@ -3,6 +3,7 @@ import type { ElementProps } from "../../types";
 
 import { useMarkdown } from "../../composables/markdown";
 import NodeList from "../NodeList.vue";
+import { elementPropertiesToProps } from "../utils/elementPropertiesToProps";
 
 defineOptions({
   inheritAttrs: false,
@@ -13,7 +14,7 @@ const { components, transition } = useMarkdown();
 </script>
 
 <template>
-  <li data-mark="list-item" v-bind="element.properties">
+  <li data-mark="list-item" v-bind="elementPropertiesToProps(element.properties)">
     <NodeList
       :nodes="element.children"
       :nodeIdx="nodeIdx"

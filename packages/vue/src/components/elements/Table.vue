@@ -3,6 +3,7 @@ import type { ElementProps } from "../../types";
 
 import { useMarkdown } from "../../composables/markdown";
 import NodeList from "../NodeList.vue";
+import { elementPropertiesToProps } from "../utils/elementPropertiesToProps";
 
 defineOptions({
   inheritAttrs: false,
@@ -13,7 +14,7 @@ const { components, transition } = useMarkdown();
 </script>
 
 <template>
-  <table data-mark-sorcery="table" v-bind="element.properties">
+  <table data-mark-sorcery="table" v-bind="elementPropertiesToProps(element.properties)">
     <NodeList
       :nodes="element.children"
       :nodeIdx="nodeIdx"

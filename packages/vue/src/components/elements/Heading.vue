@@ -5,6 +5,7 @@ import type { ElementProps } from "../../types";
 
 import { useMarkdown } from "../../composables/markdown";
 import NodeList from "../NodeList.vue";
+import { elementPropertiesToProps } from "../utils/elementPropertiesToProps";
 
 defineOptions({
   inheritAttrs: false,
@@ -24,7 +25,7 @@ const headingLevel = computed(() => {
     :is="element.tagName"
     data-mark-sorcery="heading"
     :data-heading-level="headingLevel"
-    v-bind="element.properties"
+    v-bind="elementPropertiesToProps(element.properties)"
   >
     <NodeList
       :nodes="element.children"
