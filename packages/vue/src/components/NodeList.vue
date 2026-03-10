@@ -11,45 +11,9 @@ defineOptions({
   inheritAttrs: false,
 });
 
-const { nodes, nodeKey, deep = 0, parentNode } = defineProps<NodeListProps>();
+const { nodes, nodeKey, deep = 0, parentNode, components } = defineProps<NodeListProps>();
 
-const { components, transition } = useMarkdown();
-
-const getRenderNode = ({ node, idx, nodeKey }: { node: Nodes; idx: number; nodeKey: string }) => {
-  if (node.type === "text") {
-    return node.value;
-  } else if (node.type === "element") {
-    const component = components.value[node.tagName];
-    if (!component) {
-      return [];
-    }
-    return h(component, {
-      element: node,
-      nodeIdx: idx,
-      deep: deep + 1,
-      nodeKey,
-      parentNode,
-    });
-  } else {
-    return [];
-  }
-};
-
-const nodeRenderer = ({ node, idx, nodeKey }: { node: Nodes; idx: number; nodeKey: string }) => {
-  const renderNode = getRenderNode({ node, idx, nodeKey });
-
-  if (transition.value) {
-    const transitionProps = {
-      appear: true,
-    };
-    if (typeof transition.value === "object") {
-      Object.assign(transitionProps, transition.value);
-    }
-    return h(VueTransition, transitionProps, () => renderNode);
-  }
-
-  return renderNode;
-};
+const { transition } = useMarkdown();
 
 const nodeKeyPrefix = computed(() => (!nodeKey ? "" : `${nodeKey}.`));
 const transitionConfig = computed(() => {
@@ -74,11 +38,11 @@ function getNodeKey(node: Nodes, idx: number) {
 
 function getNodeComponent(node: Nodes) {
   if (node.type === "text") {
-    return components.value["text"];
+    return components["text"];
   } else if (node.type === "element") {
-    return components.value[node.tagName];
+    return components[node.tagName];
   } else {
-    return components.value["default"];
+    return components["default"];
   }
 }
 
