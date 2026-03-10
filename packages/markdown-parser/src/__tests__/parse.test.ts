@@ -299,6 +299,39 @@ describe('plugin system', () => {
 // ─── Core plugin ─────────────────────────────────────────────────────────────
 
 describe('core plugin', () => {
+  it('normalizes markdown in preprocess by default', () => {
+    const processor = createProcessor({
+      plugins: [createCorePlugin()],
+    });
+
+    const normalized = processor.preprocess('line 1\r\nline 2\t  \r\n\r\n\r\nline 3\rtrailing   ');
+
+    expect(normalized).toBe('line 1\nline 2\n\nline 3\ntrailing');
+  });
+
+  it('allows disabling the normalizer inside the core plugin', () => {
+    const processor = createProcessor({
+      plugins: [createCorePlugin({ normalizer: false })],
+    });
+
+    const original = 'line 1\r\nline 2\t  \r\n\r\n\r\nline 3\rtrailing   ';
+
+    expect(processor.preprocess(original)).toBe(original);
+  });
+
+  it('registers the normalizer before remend inside the core preprocessors', () => {
+    const plugin = createCorePlugin();
+
+    expect(Array.isArray(plugin.preprocess)).toBe(true);
+    expect(plugin.preprocess).toHaveLength(2);
+
+    const preprocessors = plugin.preprocess as ((markdown: string) => string)[];
+    const normalized = preprocessors[0]('line 1\r\n\r\n\r\nline 2\t  ');
+
+    expect(normalized).toBe('line 1\n\nline 2');
+    expect(preprocessors[1]('**incomplete')).toContain('**');
+  });
+
   it('adds remend as a preprocess', () => {
     const result = parseMarkdown('**incomplete', {
       plugins: [createCorePlugin()],
@@ -313,6 +346,24 @@ describe('core plugin', () => {
     });
     const strong = findNode(result, 'strong');
     expect(strong).toBeUndefined();
+  });
+
+  it('accepts normalizer options', () => {
+    const processor = createProcessor({
+      plugins: [
+        createCorePlugin({
+          normalizer: {
+            tabWidth: 2,
+            trimTrailingWhitespace: false,
+            maxConsecutiveBlankLines: 2,
+          },
+        }),
+      ],
+    });
+
+    const normalized = processor.preprocess('line\t\r\n\r\n\r\n\r\nnext');
+
+    expect(normalized).toBe('line  \n\n\nnext');
   });
 
   it('adds remark-gfm with its options', () => {

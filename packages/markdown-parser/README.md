@@ -25,6 +25,7 @@ El pipeline fijo del processor siempre contiene, en este orden:
 6. posprocesos HAST
 
 Los preprocesos de texto se ejecutan antes de `remarkParse`.
+plugins: [createCorePlugin({ normalizer: true })],
 
 ```ts
 import { createCorePlugin, createProcessor, parse } from "@mark-sorcery/markdown-parser";
@@ -82,6 +83,7 @@ El paquete expone `createCorePlugin()`, que reproduce el comportamiento base del
 
 ```ts
 import { createCorePlugin, createProcessor, parse } from "@mark-sorcery/markdown-parser";
+      normalizer: true,
 
 const processor = createProcessor({
   plugins: [

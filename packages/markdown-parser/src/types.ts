@@ -60,6 +60,12 @@ export interface CorePluginOptions {
    * @default defaultSchema (from rehype-sanitize)
    */
   sanitize?: false | SanitizeSchema;
+  /**
+   * Pass `false` to disable markdown normalization before parsing.
+   * Pass a `NormalizerOptions` object to configure normalization rules.
+   * @default true
+   */
+  normalizer?: boolean | NormalizerOptions;
 }
 
 export type AnyProcessor = Processor<any, any, any, any, any>;
@@ -100,4 +106,28 @@ export interface ParseMemory {
    * When true, the next streaming call promotes the pending block to confirmed.
    */
   flush?: boolean;
+}
+
+export interface NormalizerOptions {
+  /**
+   * Convert Windows and classic Mac line endings to `\n`.
+   * @default true
+   */
+  lineEndings?: boolean;
+  /**
+   * Remove trailing spaces and tabs at the end of each line.
+   * @default true
+   */
+  trimTrailingWhitespace?: boolean;
+  /**
+   * Replace tabs with spaces. Pass `false` to preserve tabs.
+   * @default 4
+   */
+  tabWidth?: number | false;
+  /**
+   * Maximum number of consecutive blank lines to keep.
+   * Pass `false` to preserve all blank lines.
+   * @default 1
+   */
+  maxConsecutiveBlankLines?: number | false;
 }

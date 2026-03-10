@@ -15,3 +15,4 @@ export type {
     UnifiedPluginEntry,
     MarkdownProcessor,
 } from './types.ts';
+export type { NormalizerOptions } from './types.ts';
