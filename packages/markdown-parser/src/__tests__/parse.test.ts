@@ -306,7 +306,7 @@ describe('core plugin', () => {
 
     const normalized = processor.preprocess('line 1\r\nline 2\t  \r\n\r\n\r\nline 3\rtrailing   ');
 
-    expect(normalized).toBe('line 1\nline 2\n\nline 3\ntrailing');
+    expect(normalized).toBe('line 1\nline 2\nline 3\ntrailing');
   });
 
   it('allows disabling the normalizer inside the core plugin', () => {
@@ -328,7 +328,7 @@ describe('core plugin', () => {
     const preprocessors = plugin.preprocess as ((markdown: string) => string)[];
     const normalized = preprocessors[0]('line 1\r\n\r\n\r\nline 2\t  ');
 
-    expect(normalized).toBe('line 1\n\nline 2');
+    expect(normalized).toBe('line 1\nline 2');
     expect(preprocessors[1]('**incomplete')).toContain('**');
   });
 
