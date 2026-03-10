@@ -13,7 +13,7 @@ import type {
 } from './types.ts';
 
 const DEFAULT_TAB_WIDTH = 4;
-const DEFAULT_MAX_CONSECUTIVE_BLANK_LINES = 0;
+const DEFAULT_MAX_CONSECUTIVE_BLANK_LINES = 1;
 
 function arrayify<T>(value?: T | T[]): T[] {
     if (value === undefined) {
