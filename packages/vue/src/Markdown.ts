@@ -1,13 +1,12 @@
-import { computed, defineComponent, Fragment, h, markRaw, shallowRef, watchEffect } from 'vue';
+import { computed, defineComponent, h, shallowRef, watchEffect } from 'vue';
 import { createMemory, createProcessor, parse } from '@mark-sorcery/markdown-parser';
-import { hastToVNodes } from './hast-to-vnodes.ts';
 import type {
-  Components,
   MarkdownProcessor,
-  MarkdownOptions,
   MarkdownProps,
   ParseMemory,
 } from './types.ts';
+import NodeList from './components/NodeList.vue';
+import { useProvideMarkdown } from './composables/markdown.ts';
 
 export const Markdown = defineComponent({
   name: 'Markdown',
@@ -18,7 +17,7 @@ export const Markdown = defineComponent({
       required: true,
     },
     options: {
-      type: Object as () => MarkdownOptions,
+      type: Object as () => MarkdownProps['options'],
       default: undefined,
     },
     plugins: {
@@ -30,8 +29,12 @@ export const Markdown = defineComponent({
       default: false,
     },
     components: {
-      type: [Object, Function] as unknown as () => Components,
+      type: Object as unknown as () => MarkdownProps['components'],
       default: () => ({}),
+    },
+    transition: {
+      type: [Boolean, Object] as unknown as () => MarkdownProps['transition'],
+      default: false,
     },
   } satisfies {
     [K in keyof MarkdownProps]-?: unknown;
@@ -79,19 +82,17 @@ export const Markdown = defineComponent({
       hast.value = parse(currentProcessor, markdown);
     });
 
+    const { components: providedComponents, transition: providedTransition } = useProvideMarkdown(computed(() => props.components), computed(() => props.transition));
+
     return () => {
-      const raw = props.components ?? {};
-      // Function resolvers pass through; record values are wrapped in markRaw
-      // so Vue doesn't make component objects reactive (perf warning prevention)
-      const components: Components = typeof raw === 'function'
-        ? raw
-        : Object.fromEntries(
-          Object.entries(raw).map(([k, v]) =>
-            [k, typeof v === 'string' || v == null ? v : markRaw(v)],
-          ),
-        );
-      const vnodes = hastToVNodes(hast.value, components);
-      return h(Fragment, vnodes);
+      return h(NodeList, {
+        nodes: hast.value.children,
+        nodeKey: 'root',
+        deep: 0,
+        parentNode: hast.value,
+        components: providedComponents.value,
+        transition: providedTransition.value,
+      });
     };
   },
 });

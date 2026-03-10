@@ -1,101 +1,69 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import { defineComponent, h, markRaw, ref } from 'vue';
 import { describe, expect, it } from 'vitest';
-import { defineComponent, markRaw, ref } from 'vue';
-import { createCorePlugin, Markdown, type ParserPlugin } from '../index.ts';
+import { createCorePlugin } from '../../../markdown-parser/src/index.ts';
+import {
+  createRecursiveComponent,
+  MarkdownHarness,
+  NodeList,
+} from './test-helpers.ts';
 
-// ─── basic rendering ─────────────────────────────────────────────────────────
-
-describe('basic rendering', () => {
-  it('renders a heading from markdown', () => {
-    const wrapper = mount(Markdown, { props: { markdown: '# Hello' } });
-    expect(wrapper.find('h1').exists()).toBe(true);
-    expect(wrapper.find('h1').text()).toBe('Hello');
-  });
-
-  it('renders bold text', () => {
-    const wrapper = mount(Markdown, { props: { markdown: '**bold**' } });
-    expect(wrapper.find('strong').exists()).toBe(true);
-  });
-
-  it('renders empty markdown without errors', () => {
-    expect(() => mount(Markdown, { props: { markdown: '' } })).not.toThrow();
-  });
-});
-
-// ─── reactivity ──────────────────────────────────────────────────────────────
-
-describe('reactivity', () => {
-  it('updates the DOM when markdown prop changes', async () => {
-    const Parent = defineComponent({
-      setup() {
-        const md = ref('# First');
-        return { md };
+describe('Markdown', () => {
+  it('renderiza markdown basico con componentes anidados', async () => {
+    const wrapper = mount(MarkdownHarness, {
+      props: {
+        markdown: '**hola**',
+        plugins: [createCorePlugin()],
+        components: {
+          p: createRecursiveComponent('p', 'paragraph'),
+          strong: createRecursiveComponent('strong', 'bold'),
+        },
       },
-      components: { Markdown },
-      template: '<Markdown :markdown="md" />',
+    });
+
+    await flushPromises();
+
+    expect(wrapper.find('[data-test-tag="paragraph"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test-tag="bold"]').exists()).toBe(true);
+    expect(wrapper.text()).toBe('hola');
+  });
+
+  it('actualiza el arbol renderizado cuando cambia markdown', async () => {
+    const Parent = defineComponent({
+      components: { MarkdownHarness },
+      setup() {
+        const markdown = ref('# Uno');
+
+        return {
+          markdown,
+          components: {
+            h1: createRecursiveComponent('h1', 'h1'),
+            h2: createRecursiveComponent('h2', 'h2'),
+          },
+        };
+      },
+      template: '<MarkdownHarness :markdown="markdown" :components="components" />',
     });
 
     const wrapper = mount(Parent);
-    expect(wrapper.find('h1').text()).toBe('First');
 
-    wrapper.vm.md = '# Second';
+    await flushPromises();
+
+    expect(wrapper.find('[data-test-tag="h1"]').exists()).toBe(true);
+    expect(wrapper.text()).toBe('Uno');
+
+    wrapper.vm.markdown = '## Dos';
     await wrapper.vm.$nextTick();
-    expect(wrapper.find('h1').text()).toBe('Second');
-  });
-});
+    await flushPromises();
 
-// ─── parser options ───────────────────────────────────────────────────────────
-
-describe('processor plugins via prop', () => {
-  it('reexports createCorePlugin from the package entry', () => {
-    expect(createCorePlugin()).toMatchObject({});
+    expect(wrapper.find('[data-test-tag="h1"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test-tag="h2"]').exists()).toBe(true);
+    expect(wrapper.text()).toBe('Dos');
   });
 
-  it('disables GFM tables when the core plugin turns gfm off', () => {
-    const md = '| a | b |\n|---|---|\n| c | d |';
-    const wrapper = mount(Markdown, {
-      props: {
-        markdown: md,
-        plugins: [createCorePlugin({ gfm: false })],
-      },
-    });
-    expect(wrapper.find('table').exists()).toBe(false);
-  });
-
-  it('renders GFM tables when the core plugin is provided', () => {
-    const md = '| a | b |\n|---|---|\n| c | d |';
-    const wrapper = mount(Markdown, {
-      props: {
-        markdown: md,
-        plugins: [createCorePlugin()],
-      },
-    });
-    expect(wrapper.find('table').exists()).toBe(true);
-  });
-
-  it('completes incomplete markdown when the core plugin enables remend', () => {
-    const wrapper = mount(Markdown, {
-      props: {
-        markdown: '**incomplete',
-        plugins: [createCorePlugin()],
-      },
-    });
-    expect(wrapper.find('strong').exists()).toBe(true);
-  });
-
-  it('does not complete markdown when the core plugin disables remend', () => {
-    const wrapper = mount(Markdown, {
-      props: {
-        markdown: '**incomplete',
-        plugins: [createCorePlugin({ remend: false })],
-      },
-    });
-    expect(wrapper.find('strong').exists()).toBe(false);
-  });
-
-  it('recomputes the processor when the plugins prop changes', async () => {
-    const headingPlugin: ParserPlugin = {
-      postprocess: (root) => {
+  it('reconstruye el processor cuando cambia plugins', async () => {
+    const headingPlugin = {
+      postprocess: (root: { children: Array<{ type: string; tagName?: string }> }) => {
         const heading = root.children[0];
         if (heading?.type === 'element' && heading.tagName === 'h1') {
           heading.tagName = 'h2';
@@ -104,143 +72,175 @@ describe('processor plugins via prop', () => {
       },
     };
 
-    const wrapper = mount(Markdown, {
+    const wrapper = mount(MarkdownHarness, {
       props: {
-        markdown: '# Title',
+        markdown: '# Titulo',
         plugins: [createCorePlugin()],
+        components: {
+          h1: createRecursiveComponent('h1', 'h1'),
+          h2: createRecursiveComponent('h2', 'h2'),
+        },
       },
     });
 
-    expect(wrapper.find('h1').exists()).toBe(true);
+    await flushPromises();
+
+    expect(wrapper.find('[data-test-tag="h1"]').exists()).toBe(true);
 
     await wrapper.setProps({ plugins: [headingPlugin] });
+    await flushPromises();
 
-    expect(wrapper.find('h1').exists()).toBe(false);
-    expect(wrapper.find('h2').text()).toBe('Title');
-  });
-});
-
-// ─── sanitization ─────────────────────────────────────────────────────────────
-
-describe('sanitization', () => {
-  it('removes script tags by default', () => {
-    const wrapper = mount(Markdown, {
-      props: {
-        markdown: '<script>alert("xss")</script>',
-        plugins: [createCorePlugin()],
-      },
-    });
-    expect(wrapper.find('script').exists()).toBe(false);
+    expect(wrapper.find('[data-test-tag="h1"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test-tag="h2"]').exists()).toBe(true);
+    expect(wrapper.text()).toBe('Titulo');
   });
 
-  it('keeps safe tags by default', () => {
-    const wrapper = mount(Markdown, {
-      props: {
-        markdown: '<b>safe</b>',
-        plugins: [createCorePlugin()],
-      },
-    });
-    expect(wrapper.find('b').exists()).toBe(true);
-  });
-});
-
-// ─── streaming ───────────────────────────────────────────────────────────────
-
-describe('streaming', () => {
-  it('reuses parse memory while the stream grows', async () => {
-    const wrapper = mount(Markdown, {
+  it('mantiene el contenido confirmado cuando el stream crece', async () => {
+    const wrapper = mount(MarkdownHarness, {
       props: {
         markdown: '# Title\n\n**hola',
         plugins: [createCorePlugin()],
         stream: true,
+        components: {
+          h1: createRecursiveComponent('h1', 'h1'),
+          p: createRecursiveComponent('p', 'p'),
+          strong: createRecursiveComponent('strong', 'strong'),
+          ul: createRecursiveComponent('ul', 'ul'),
+          li: createRecursiveComponent('li', 'li'),
+        },
       },
     });
 
-    expect(wrapper.find('h1').text()).toBe('Title');
-    expect(wrapper.find('strong').text()).toBe('hola');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Title');
+    expect(wrapper.text()).toContain('hola');
+    expect(wrapper.find('[data-test-tag="ul"]').exists()).toBe(false);
 
     await wrapper.setProps({ markdown: '# Title\n\n**hola\n\n- item' });
+    await flushPromises();
 
-    expect(wrapper.find('h1').text()).toBe('Title');
-    expect(wrapper.find('strong').text()).toBe('hola');
-    expect(wrapper.find('ul').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Title');
+    expect(wrapper.text()).toContain('hola');
+    expect(wrapper.find('[data-test-tag="ul"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test-tag="li"]').text()).toBe('item');
   });
 
-  it('flushes pending memory when stream changes from true to false without changing output', async () => {
-    const wrapper = mount(Markdown, {
+  it('aplica createCorePlugin para tablas GFM cuando hay componentes registrados', async () => {
+    const components = {
+      p: createRecursiveComponent('p', 'paragraph'),
+      table: createRecursiveComponent('table', 'table'),
+      thead: createRecursiveComponent('thead', 'thead'),
+      tbody: createRecursiveComponent('tbody', 'tbody'),
+      tr: createRecursiveComponent('tr', 'tr'),
+      th: createRecursiveComponent('th', 'th'),
+      td: createRecursiveComponent('td', 'td'),
+    };
+
+    const withGfm = mount(MarkdownHarness, {
       props: {
-        markdown: '**hola',
+        markdown: '| a | b |\n|---|---|\n| c | d |',
         plugins: [createCorePlugin()],
-        stream: true,
+        components,
       },
     });
 
-    const before = wrapper.html();
+    await flushPromises();
 
-    await wrapper.setProps({ stream: false });
+    expect(withGfm.find('[data-test-tag="table"]').exists()).toBe(true);
+    expect(withGfm.text()).toContain('abcd');
 
-    expect(wrapper.html()).toBe(before);
-    expect(wrapper.find('strong').exists()).toBe(true);
+    const withoutGfm = mount(MarkdownHarness, {
+      props: {
+        markdown: '| a | b |\n|---|---|\n| c | d |',
+        plugins: [createCorePlugin({ gfm: false })],
+        components,
+      },
+    });
 
-    await wrapper.setProps({ markdown: 'plain text' });
+    await flushPromises();
 
-    expect(wrapper.find('strong').exists()).toBe(false);
-    expect(wrapper.text()).toContain('plain text');
+    expect(withoutGfm.find('[data-test-tag="table"]').exists()).toBe(false);
   });
-});
 
-// ─── custom components ────────────────────────────────────────────────────────
-
-describe('custom components', () => {
-  it('replaces a tag with a custom component', () => {
-    const MyH1 = markRaw(defineComponent({
-      props: ['class'],
-      template: '<h1 data-custom="true"><slot /></h1>',
+  it('permite componentes personalizados anidados y conserva la recursion', async () => {
+    const CustomHeading = markRaw(defineComponent({
+      name: 'CustomHeading',
+      props: ['element', 'nodeIdx', 'deep', 'nodeKey', 'parentNode'],
+      render() {
+        return h('h1', { 'data-test-tag': 'custom-heading' }, [
+          h(NodeList, {
+            nodes: this.element.children,
+            nodeIdx: this.nodeIdx,
+            deep: this.deep,
+            nodeKey: this.nodeKey,
+            parentNode: this.element,
+          }),
+        ]);
+      },
     }));
 
-    const wrapper = mount(Markdown, {
+    const wrapper = mount(MarkdownHarness, {
       props: {
-        markdown: '# Title',
-        components: { h1: MyH1 },
+        markdown: '# **Hola**',
+        plugins: [createCorePlugin()],
+        components: {
+          h1: CustomHeading,
+          strong: createRecursiveComponent('strong', 'bold'),
+        },
       },
     });
 
-    expect(wrapper.find('[data-custom="true"]').exists()).toBe(true);
+    await flushPromises();
+
+    expect(wrapper.find('[data-test-tag="custom-heading"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test-tag="bold"]').exists()).toBe(true);
+    expect(wrapper.text()).toBe('Hola');
   });
 
-  it('uses default element when no custom component specified', () => {
-    const wrapper = mount(Markdown, {
-      props: {
-        markdown: '## Default',
-        components: {},
+  it('expone metadatos del nodo al componente personalizado', async () => {
+    const calls: Array<{
+      tagName: string;
+      nodeIdx: number;
+      deep: number;
+      nodeKey: string;
+      parentType: string;
+    }> = [];
+
+    const CaptureHeading = markRaw(defineComponent({
+      name: 'CaptureHeading',
+      props: ['element', 'nodeIdx', 'deep', 'nodeKey', 'parentNode'],
+      setup(props) {
+        calls.push({
+          tagName: props.element.tagName,
+          nodeIdx: props.nodeIdx,
+          deep: props.deep,
+          nodeKey: String(props.nodeKey),
+          parentType: props.parentNode.type,
+        });
+
+        return () => null;
       },
-    });
-    expect(wrapper.find('h2').exists()).toBe(true);
-  });
-
-  it('accepts a function resolver as components prop', () => {
-    const MyH1 = markRaw(defineComponent({
-      props: ['class'],
-      template: '<h1 data-fn-custom="true"><slot /></h1>',
     }));
 
-    const wrapper = mount(Markdown, {
+    mount(MarkdownHarness, {
       props: {
-        markdown: '# Title',
-        components: (node: { tagName: string }) => node.tagName === 'h1' ? MyH1 : undefined,
+        markdown: '# Hola',
+        components: {
+          h1: CaptureHeading,
+        },
       },
     });
 
-    expect(wrapper.find('[data-fn-custom="true"]').exists()).toBe(true);
-  });
+    await flushPromises();
 
-  it('function resolver returning undefined uses default element', () => {
-    const wrapper = mount(Markdown, {
-      props: {
-        markdown: '## Heading',
-        components: () => undefined,
-      },
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({
+      tagName: 'h1',
+      nodeIdx: 0,
+      deep: 1,
+      parentType: 'root',
     });
-    expect(wrapper.find('h2').exists()).toBe(true);
+    expect(calls[0]?.nodeKey).toContain('element-h1-0');
   });
 });

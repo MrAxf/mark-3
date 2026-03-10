@@ -1,7 +1,9 @@
 export { Markdown } from './Markdown.ts';
+export { default as NodeList } from './components/NodeList.vue';
+export { DEFAULT_COMPONENTS } from './components/index.ts';
+export { useMarkdown } from './composables/markdown.ts';
 export { createCorePlugin } from '@mark-sorcery/markdown-parser';
 export type {
-    Components,
     CorePluginOptions,
     MarkdownProcessor,
     MarkdownOptions,
@@ -10,5 +12,8 @@ export type {
     ParseMemory,
     ParseOptions,
     ParserPlugin,
+    ElementProps,
+    NodeListProps,
+    MarkdownNodeProps,
+    ItemProps,
 } from './types.ts';
-export { hastToVNodes } from './hast-to-vnodes.ts';

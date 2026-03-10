@@ -1,5 +1,5 @@
-import type { Component } from 'vue';
-import type { Element } from 'hast';
+import type { BaseTransitionProps, Component } from 'vue';
+import type { Element, Nodes } from 'hast';
 import type {
   CorePluginOptions,
   MarkdownProcessor,
@@ -16,31 +16,37 @@ export type {
   ParserPlugin,
 };
 
-export type MarkdownOptions = Omit<ParseOptions, 'plugins'>;
-
-/** A resolved component value: a Vue component, a tag string, or null/undefined to fall back to the default element. */
-export type ComponentResolution = Component | string | null | undefined;
-
 /**
- * Resolves which Vue component or tag to render for a given HAST element node.
+ * Configuration forwarded to Vue's `<Transition>` component.
+ * All props are optional; when `transition: true` is used on `<Markdown>`,
+ * defaults to `{}` which activates Vue's default `v-enter-*` classes.
  *
- * Can be:
- * - A **record** mapping tag names to components or tag strings (e.g. `{ h1: MyHeading }`)
- * - A **function** `(node: Element) => ComponentResolution` — called for every element;
- *   return `null` or `undefined` to fall back to the default HTML element.
- *
- * @example — record form
- * const components: Components = { h1: MyHeading, code: MyCode }
- *
- * @example — function form
- * const components: Components = (node) => {
- *   if (node.tagName === 'h1') return MyHeading
- *   if (node.properties?.className?.includes('warning')) return MyWarning
- * }
+ * @see https://vuejs.org/api/built-in-components.html#transition
  */
-export type Components =
-  | Partial<Record<string, ComponentResolution>>
-  | ((node: Element) => ComponentResolution);
+export interface TransitionConfig {
+  name?: string;
+  css?: boolean;
+  mode?: 'in-out' | 'out-in' | 'default';
+  enterFromClass?: string;
+  enterActiveClass?: string;
+  enterToClass?: string;
+  leaveFromClass?: string;
+  leaveActiveClass?: string;
+  leaveToClass?: string;
+  appearFromClass?: string;
+  appearActiveClass?: string;
+  appearToClass?: string;
+  onBeforeEnter?: BaseTransitionProps['onBeforeEnter'];
+  onEnter?: BaseTransitionProps['onEnter'];
+  onAfterEnter?: BaseTransitionProps['onAfterEnter'];
+  onEnterCancelled?: BaseTransitionProps['onEnterCancelled'];
+  onBeforeLeave?: BaseTransitionProps['onBeforeLeave'];
+  onLeave?: BaseTransitionProps['onLeave'];
+  onAfterLeave?: BaseTransitionProps['onAfterLeave'];
+  onLeaveCancelled?: BaseTransitionProps['onLeaveCancelled'];
+}
+
+export type MarkdownOptions = Omit<ParseOptions, 'plugins'>;
 
 /**
  * Props automatically injected into every custom Vue component rendered by
@@ -65,5 +71,41 @@ export interface MarkdownProps {
   /** Enables parse memory so growing markdown streams preserve confirmed blocks. */
   stream?: boolean;
   /** Custom Vue components or tags to use in place of default HTML elements. */
-  components?: Components;
+  components?: Record<string, Component>;
+  /**
+   * Optional Vue `<Transition>` configuration applied to every rendered element node.
+   *
+   * - `true` — enables transitions with Vue's default classes (`v-enter-*`).
+   * - `TransitionConfig` object — forwarded as props to each `<Transition>` wrapper.
+   * - `false` / `undefined` — no transitions (default).
+   *
+   * @example
+   * // Basic fade (add CSS: .fade-enter-active { transition: opacity 0.3s } .fade-enter-from { opacity: 0 })
+   * :transition="{ name: 'fade', appear: true }"
+   */
+  transition?: boolean | TransitionConfig;
+}
+
+export interface MarkdownNodeProps {
+  /** The HAST element to render. */
+  element: Element;
+  /** A unique key for the component instance. */
+  componentKey: string;
+}
+
+export type ItemProps = {
+  nodeIdx?: number;
+  deep?: number;
+  nodeKey?: string
+  parentNode?: Nodes;
+}
+
+export type NodeListProps = ItemProps & {
+  nodes: Nodes[];
+  components: NonNullable<MarkdownProps['components']>;
+  transition: MarkdownProps['transition']
+}
+
+export type ElementProps = ItemProps & {
+  element: Element;
 }
