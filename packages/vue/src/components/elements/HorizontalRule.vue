@@ -14,15 +14,5 @@ const { components, transition } = useMarkdown();
 </script>
 
 <template>
-  <hr data-mark-sorcery="horizontal-rule" v-bind="elementPropertiesToProps(element.properties)">
-    <NodeList
-      :nodes="element.children"
-      :nodeIdx="nodeIdx"
-      :deep="deep"
-      :nodeKey="nodeKey"
-      :parentNode="element"
-      :components="components"
-      :transition="transition"
-    />
-  </hr>
+  <hr data-mark-sorcery="horizontal-rule" v-bind="elementPropertiesToProps(element.properties)" />
 </template>

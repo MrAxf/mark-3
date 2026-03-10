@@ -11,6 +11,7 @@ export const DEFAULT_COMPONENTS = {
     h5: heading,
     h6: heading,
     strong: defineAsyncComponent(() => import('./elements/Bold.vue')),
+    hr: defineAsyncComponent(() => import('./elements/HorizontalRule.vue')),
     em: defineAsyncComponent(() => import('./elements/Italic.vue')),
     del: defineAsyncComponent(() => import('./elements/Strikethrough.vue')),
     blockquote: defineAsyncComponent(() => import('./elements/Blockquote.vue')),
