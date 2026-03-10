@@ -27,4 +27,6 @@ export const DEFAULT_COMPONENTS = {
     tr: defineAsyncComponent(() => import('./elements/TableRow.vue')),
     th: defineAsyncComponent(() => import('./elements/TableHeader.vue')),
     td: defineAsyncComponent(() => import('./elements/TableData.vue')),
+    text: defineAsyncComponent(() => import('./elements/Text.vue')),
+    default: defineAsyncComponent(() => import('./elements/Default.vue')),
 }

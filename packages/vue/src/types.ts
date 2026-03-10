@@ -1,5 +1,5 @@
 import type { BaseTransitionProps, Component } from 'vue';
-import type { Element, Nodes } from 'hast';
+import type { Element, Nodes, Text } from 'hast';
 import type {
   CorePluginOptions,
   MarkdownProcessor,
@@ -108,4 +108,8 @@ export type NodeListProps = ItemProps & {
 
 export type ElementProps = ItemProps & {
   element: Element;
+}
+
+export type TextProps = ItemProps & {
+  element: Text;
 }

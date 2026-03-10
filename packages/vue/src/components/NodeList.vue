@@ -52,20 +52,66 @@ const nodeRenderer = ({ node, idx, nodeKey }: { node: Nodes; idx: number; nodeKe
 };
 
 const nodeKeyPrefix = computed(() => (!nodeKey ? "" : `${nodeKey}.`));
+const transitionConfig = computed(() => {
+  if (transition.value === true) {
+    return {};
+  }
+  if (typeof transition.value === "object") {
+    return transition.value;
+  }
+  return false;
+});
 
 function getNodeKey(node: Nodes, idx: number) {
   if (node.type === "text") {
-    return `${nodeKeyPrefix}${node.type}-${idx}`;
+    return `${nodeKeyPrefix.value}${node.type}-${idx}`;
   } else if (node.type === "element") {
-    return `${nodeKeyPrefix}${node.type}-${node.tagName}-${idx}`;
+    return `${nodeKeyPrefix.value}${node.type}-${node.tagName}-${idx}`;
   } else {
-    return `${nodeKeyPrefix}${node.type}-${idx}`;
+    return `${nodeKeyPrefix.value}${node.type}-${idx}`;
   }
 }
+
+function getNodeComponent(node: Nodes) {
+  if (node.type === "text") {
+    return components.value["text"];
+  } else if (node.type === "element") {
+    return components.value[node.tagName];
+  } else {
+    return components.value["default"];
+  }
+}
+
+const items = computed(() =>
+  nodes.map((node, idx) => ({
+    node,
+    idx,
+    key: getNodeKey(node, idx),
+    component: getNodeComponent(node),
+  })),
+);
 </script>
 
 <template>
-  <template v-for="(node, idx) in nodes" :key="getNodeKey(node, idx)">
-    <nodeRenderer :node="node" :idx="idx" :nodeKey="getNodeKey(node, idx)" />
+  <template v-for="item in items" :key="item.key">
+    <VueTransition v-if="transitionConfig" appear v-bind="transitionConfig">
+      <component
+        :is="item.component"
+        :element="item.node"
+        :node-idx="item.idx"
+        :deep="deep + 1"
+        :node-key="item.key"
+        :parent-node="parentNode"
+      />
+    </VueTransition>
+    <component
+      v-else
+      :is="item.component"
+      :element="item.node"
+      :node-idx="item.idx"
+      :deep="deep + 1"
+      :node-key="item.key"
+      :parent-node="parentNode"
+    />
   </template>
 </template>
