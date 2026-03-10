@@ -4,6 +4,7 @@ import type { Options as RemarkRehypeOptions } from 'remark-rehype';
 import type { Root } from 'hast';
 import type { RemendOptions } from 'remend';
 import { Processor } from 'unified';
+import { harden } from 'rehype-harden';
 
 export type { Root, RemendOptions };
 export type { RemarkGfmOptions, SanitizeSchema };
@@ -22,6 +23,8 @@ export interface ParserPlugin {
   postprocess?: HastPostprocessor | HastPostprocessor[];
 }
 
+export type RemarkHardenOptions = Parameters<typeof harden>[0]
+
 export interface ParseOptions {
   /**
    * Plugins used when building a processor with `createProcessor(...)`.
@@ -32,6 +35,10 @@ export interface ParseOptions {
    * Extra options forwarded to `remark-rehype`.
    */
   remarkRehypeOptions?: RemarkRehypeOptions;
+  /**
+   * Extra options for the core plugin's remend completion feature.
+   */
+  remarkHardenOptions?: RemarkHardenOptions;
 }
 
 export interface CorePluginOptions {

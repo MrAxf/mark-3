@@ -27,6 +27,29 @@ function findNode(root: Root, tagName: string): Element | undefined {
   return undefined;
 }
 
+function findNodes(root: Root, tagName: string): Element[] {
+  const matches: Element[] = [];
+  const queue: (Root | Element)[] = [root];
+
+  while (queue.length > 0) {
+    const node = queue.shift()!;
+
+    if (node.type === 'element' && (node as Element).tagName === tagName) {
+      matches.push(node as Element);
+    }
+
+    if ('children' in node) {
+      for (const child of node.children) {
+        if (child.type === 'element') {
+          queue.push(child as Element);
+        }
+      }
+    }
+  }
+
+  return matches;
+}
+
 function textContent(node: Root | Element): string {
   const fragments: string[] = [];
   const queue: (Root | Element)[] = [node];
@@ -99,6 +122,80 @@ describe('basic output', () => {
     const result = parseMarkdown('');
     expect(result.type).toBe('root');
     expect(result.children.length).toBe(0);
+  });
+});
+
+// ─── rehype-harden ─────────────────────────────────────────────────────────
+
+describe('rehype-harden', () => {
+  it('bloquea enlaces con protocolos peligrosos por defecto', () => {
+    const result = parseMarkdown('[malicioso](javascript:alert(1))');
+
+    expect(findNode(result, 'a')).toBeUndefined();
+
+    const blockedIndicator = findNodes(result, 'span').find(
+      (node) => textContent(node).includes('[blocked]'),
+    );
+
+    expect(blockedIndicator).toBeDefined();
+    expect(textContent(blockedIndicator!)).toContain('malicioso');
+  });
+
+  it('añade atributos de seguridad a enlaces permitidos', () => {
+    const result = parseMarkdown('[seguro](https://example.com/docs)');
+    const link = findNode(result, 'a');
+
+    expect(link).toBeDefined();
+    expect(link?.properties.href).toBe('https://example.com/docs');
+    expect(link?.properties.target).toBe('_blank');
+    expect(link?.properties.rel).toEqual(['noopener', 'noreferrer']);
+  });
+
+  it('permite protocolos personalizados cuando se configuran', () => {
+    const blocked = parseMarkdown('[abrir](vscode://file/c:/temp/demo.ts)', {
+      remarkHardenOptions: {
+        allowedProtocols: [],
+      },
+    });
+    const allowed = parseMarkdown('[abrir](vscode://file/c:/temp/demo.ts)', {
+      remarkHardenOptions: {
+        allowedProtocols: ['vscode:'],
+      },
+    });
+
+    expect(findNode(blocked, 'a')).toBeUndefined();
+    expect(findNode(allowed, 'a')?.properties.href).toBe('vscode://file/c:/temp/demo.ts');
+  });
+
+  it('respeta allowedLinkPrefixes para URLs relativas con defaultOrigin', () => {
+    const allowed = parseMarkdown('[docs](/docs/intro)', {
+      remarkHardenOptions: {
+        defaultOrigin: 'https://mark.test',
+        allowedLinkPrefixes: ['https://mark.test/docs/'],
+      },
+    });
+    const blocked = parseMarkdown('[fuera](/blog/post)', {
+      remarkHardenOptions: {
+        defaultOrigin: 'https://mark.test',
+        allowedLinkPrefixes: ['https://mark.test/docs/'],
+      },
+    });
+
+    expect(findNode(allowed, 'a')?.properties.href).toBe('/docs/intro');
+    expect(findNode(blocked, 'a')).toBeUndefined();
+  });
+
+  it('permite imágenes data por defecto y deja desactivarlas', () => {
+    const enabled = parseMarkdown('![inline](data:image/png;base64,abcd)');
+    const disabled = parseMarkdown('![inline](data:image/png;base64,abcd)', {
+      remarkHardenOptions: {
+        allowDataImages: false,
+      },
+    });
+
+    expect(findNode(enabled, 'img')?.properties.src).toBe('data:image/png;base64,abcd');
+    expect(findNode(disabled, 'img')).toBeUndefined();
+    expect(textContent(disabled)).toContain('[Image blocked: inline]');
   });
 });
 
