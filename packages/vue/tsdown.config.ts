@@ -5,7 +5,9 @@ export default defineConfig({
   entry: ['src/index.ts'],
   plugins: [Vue({ isProduction: true })],
   format: ['esm', 'cjs'],
-  dts: true,
+  dts: {
+    vue: true,
+  },
   clean: true,
   platform: 'neutral',
   treeshake: true,
