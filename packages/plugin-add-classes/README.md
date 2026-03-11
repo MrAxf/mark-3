@@ -16,25 +16,25 @@ El paquete expone dos entradas:
 - `rehypeAddClasses(options)`: rehype plugin reutilizable si quieres integrarlo manualmente.
 
 ```ts
-import { createProcessor, parse } from "@mark-sorcery/markdown-parser";
-import { createAddClassesPlugin } from "@mark-sorcery/plugin-add-classes";
+import { createProcessor, parse } from '@mark-sorcery/markdown-parser'
+import { createAddClassesPlugin } from '@mark-sorcery/plugin-add-classes'
 
 const processor = createProcessor({
   plugins: [
     createAddClassesPlugin({
       elements: {
-        h1: "heading heading-xl",
-        h2: "heading heading-lg",
-        p: ["copy", "copy-body"],
-        a: "link",
-        code: "code-inline",
-        pre: "code-block",
+        h1: 'heading heading-xl',
+        h2: 'heading heading-lg',
+        p: ['copy', 'copy-body'],
+        a: 'link',
+        code: 'code-inline',
+        pre: 'code-block',
       },
     }),
   ],
-});
+})
 
-const root = parse(processor, "# Hello\n\nParagraph");
+const root = parse(processor, '# Hello\n\nParagraph')
 ```
 
 ## API
@@ -51,7 +51,7 @@ Recorre el árbol HAST y añade clases a cada nodo `element` cuyo `tagName` exis
 
 ```ts
 interface AddClassesOptions {
-  elements?: Record<string, string | string[] | undefined>;
+  elements?: Record<string, string | string[] | undefined>
 }
 ```
 

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { NodeList, useMarkdown, type ElementProps } from "@mark-sorcery/vue";
+import { NodeList, useMarkdown, type ElementProps } from '@mark-sorcery/vue'
 
-const { element, nodeIdx, deep, nodeKey } = defineProps<ElementProps>();
-const { components, transition } = useMarkdown();
+const { element, nodeIdx, deep, nodeKey } = defineProps<ElementProps>()
+const { components, transition } = useMarkdown()
 </script>
 
 <template>

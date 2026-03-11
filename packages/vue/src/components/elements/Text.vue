@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { TextProps } from "../../types";
+import type { TextProps } from '../../types'
 
 defineOptions({
   inheritAttrs: false,
-});
+})
 
-const { element } = defineProps<TextProps>();
+const { element } = defineProps<TextProps>()
 </script>
 
 <template>

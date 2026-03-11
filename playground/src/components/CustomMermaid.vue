@@ -1,36 +1,36 @@
 <script setup lang="ts">
-import mermaid from "mermaid";
-import { computed, ref, watch } from "vue";
+import mermaid from 'mermaid'
+import { computed, ref, watch } from 'vue'
 
-mermaid.initialize({ startOnLoad: false, theme: "dark" });
+mermaid.initialize({ startOnLoad: false, theme: 'dark' })
 
-const props = defineProps<{ code?: string }>();
+const props = defineProps<{ code?: string }>()
 
-let diagramCount = 0;
+let diagramCount = 0
 
 const diagramCode = computed(() => {
-  return props.code?.trim() ?? "";
-});
+  return props.code?.trim() ?? ''
+})
 
-const svg = ref("");
-const error = ref("");
+const svg = ref('')
+const error = ref('')
 
 watch(
   diagramCode,
   async (code) => {
-    if (!code) return;
-    error.value = "";
+    if (!code) return
+    error.value = ''
     try {
-      const id = `mermaid-diagram-${diagramCount++}`;
-      const { svg: result } = await mermaid.render(id, code);
-      svg.value = result;
+      const id = `mermaid-diagram-${diagramCount++}`
+      const { svg: result } = await mermaid.render(id, code)
+      svg.value = result
     } catch (e) {
-      error.value = String(e);
-      svg.value = "";
+      error.value = String(e)
+      svg.value = ''
     }
   },
   { immediate: true },
-);
+)
 </script>
 
 <template>
@@ -63,7 +63,7 @@ watch(
 .mermaid-error {
   color: #ff6f6f;
   font-size: 0.82rem;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -71,6 +71,6 @@ watch(
 .mermaid-loading {
   color: #d6c8bc;
   font-size: 0.84rem;
-  font-family: "Rajdhani", "Segoe UI", sans-serif;
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
 }
 </style>

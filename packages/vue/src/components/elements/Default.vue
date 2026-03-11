@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { TextProps } from "../../types";
+import type { TextProps } from '../../types'
 
 defineOptions({
   inheritAttrs: false,
-});
+})
 </script>
 
 <template>

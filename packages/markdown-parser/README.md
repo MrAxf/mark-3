@@ -28,13 +28,13 @@ Los preprocesos de texto se ejecutan antes de `remarkParse`.
 plugins: [createCorePlugin({ normalizer: true })],
 
 ```ts
-import { createCorePlugin, createProcessor, parse } from "@mark-sorcery/markdown-parser";
+import { createCorePlugin, createProcessor, parse } from '@mark-sorcery/markdown-parser'
 
 const processor = createProcessor({
   plugins: [createCorePlugin()],
-});
+})
 
-const root = parse(processor, "# Hello");
+const root = parse(processor, '# Hello')
 ```
 
 La salida siempre es un árbol HAST `Root`.
@@ -46,18 +46,18 @@ Si vas a parsear múltiples strings con la misma configuración, reutiliza el mi
 `parse(...)` acepta un tercer parámetro opcional `memory` para streaming. En este modo cada llamada recibe el markdown acumulado completo hasta ese momento. El parser conserva el último bloque top-level como pendiente para poder reutilizar el prefijo confirmado, pero el valor devuelto sigue siendo siempre el árbol completo construido hasta ese momento.
 
 ```ts
-import { createMemory, createProcessor, parse } from "@mark-sorcery/markdown-parser";
+import { createMemory, createProcessor, parse } from '@mark-sorcery/markdown-parser'
 
-const processor = createProcessor();
-const memory = createMemory();
+const processor = createProcessor()
+const memory = createMemory()
 
-const block1 = parse(processor, "**hola", memory);
-const block2 = parse(processor, "**hola que tal**\nhoy", memory);
-const block3 = parse(processor, "**hola que tal**\nhoy estas muy\nbirn", memory);
+const block1 = parse(processor, '**hola', memory)
+const block2 = parse(processor, '**hola que tal**\nhoy', memory)
+const block3 = parse(processor, '**hola que tal**\nhoy estas muy\nbirn', memory)
 // block1, block2 y block3 contienen siempre el árbol completo disponible en ese momento
 
-memory.flush = true;
-const flushed = parse(processor, "**hola que tal**\nhoy estas muy\nbirn", memory);
+memory.flush = true
+const flushed = parse(processor, '**hola que tal**\nhoy estas muy\nbirn', memory)
 // flushed promueve el bloque pendiente al prefijo confirmado para futuras llamadas
 ```
 
@@ -101,7 +101,7 @@ const root = parse(processor, "**incomplete");
 ## Plugins personalizados
 
 ```ts
-import { createCorePlugin, createProcessor, parse } from "@mark-sorcery/markdown-parser";
+import { createCorePlugin, createProcessor, parse } from '@mark-sorcery/markdown-parser'
 
 const processor = createProcessor({
   plugins: [
@@ -109,24 +109,24 @@ const processor = createProcessor({
     {
       preprocess: (markdown) => `# ${markdown}`,
       postprocess: (tree) => {
-        const heading = tree.children[0];
-        if (heading?.type === "element" && heading.tagName === "h1") {
-          heading.tagName = "h2";
+        const heading = tree.children[0]
+        if (heading?.type === 'element' && heading.tagName === 'h1') {
+          heading.tagName = 'h2'
         }
 
-        return tree;
+        return tree
       },
     },
   ],
-});
+})
 
-const root = parse(processor, "hello");
+const root = parse(processor, 'hello')
 ```
 
 Un plugin también puede inyectar plugins de `unified` por fase:
 
 ```ts
-import { createProcessor, parse } from "@mark-sorcery/markdown-parser";
+import { createProcessor, parse } from '@mark-sorcery/markdown-parser'
 
 const processor = createProcessor({
   plugins: [
@@ -135,9 +135,9 @@ const processor = createProcessor({
       rehype: [[myRehypePlugin, { option: true }]],
     },
   ],
-});
+})
 
-const root = parse(processor, "content");
+const root = parse(processor, 'content')
 ```
 
 ## API pública

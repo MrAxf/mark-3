@@ -14,11 +14,11 @@ bun add @mark-sorcery/vue vue
 
 ```vue
 <script setup lang="ts">
-import { Markdown, createCorePlugin } from "@mark-sorcery/vue";
+import { Markdown, createCorePlugin } from '@mark-sorcery/vue'
 
 const markdown = `# Hola
 
-Texto con **negrita** y una [liga](https://example.com).`;
+Texto con **negrita** y una [liga](https://example.com).`
 </script>
 
 <template>
@@ -100,15 +100,15 @@ Cada componente personalizado recibe props estructurales del nodo actual:
 Si quieres conservar hijos anidados, renderiza `NodeList` dentro de tu componente:
 
 ```ts
-import { defineComponent, h, markRaw } from "vue";
-import { Markdown, NodeList, createCorePlugin } from "@mark-sorcery/vue";
+import { defineComponent, h, markRaw } from 'vue'
+import { Markdown, NodeList, createCorePlugin } from '@mark-sorcery/vue'
 
 const CustomParagraph = markRaw(
   defineComponent({
-    name: "CustomParagraph",
-    props: ["element", "nodeIdx", "deep", "nodeKey", "parentNode"],
+    name: 'CustomParagraph',
+    props: ['element', 'nodeIdx', 'deep', 'nodeKey', 'parentNode'],
     render() {
-      return h("p", { class: "custom-paragraph", "data-depth": this.deep }, [
+      return h('p', { class: 'custom-paragraph', 'data-depth': this.deep }, [
         h(NodeList, {
           nodes: this.element.children,
           nodeIdx: this.nodeIdx,
@@ -118,14 +118,14 @@ const CustomParagraph = markRaw(
           components: {},
           transition: false,
         }),
-      ]);
+      ])
     },
   }),
-);
+)
 
 const components = {
   p: CustomParagraph,
-};
+}
 
 // <Markdown markdown="Hola **mundo**" :plugins="[createCorePlugin()]" :components="components" />
 ```

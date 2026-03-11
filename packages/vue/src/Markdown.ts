@@ -1,13 +1,11 @@
-import { computed, defineComponent, h, shallowRef, watchEffect } from 'vue';
-import { createMemory, createProcessor, parse } from '@mark-sorcery/markdown-parser';
-import type {
-  MarkdownProcessor,
-  MarkdownProps,
-  ParseMemory,
-} from './types.ts';
-import NodeList from './components/NodeList.vue';
-import { useProvideMarkdown } from './composables/markdown.ts';
-import { removeLineJumpNodesPlugin } from './plugins/remove-line-jump-nodes.ts';
+import { createMemory, createProcessor, parse } from '@mark-sorcery/markdown-parser'
+import { computed, defineComponent, h, shallowRef, watchEffect } from 'vue'
+
+import type { MarkdownProcessor, MarkdownProps, ParseMemory } from './types.ts'
+
+import NodeList from './components/NodeList.vue'
+import { useProvideMarkdown } from './composables/markdown.ts'
+import { removeLineJumpNodesPlugin } from './plugins/remove-line-jump-nodes.ts'
 
 export const Markdown = defineComponent({
   name: 'Markdown',
@@ -38,52 +36,55 @@ export const Markdown = defineComponent({
       default: false,
     },
   } satisfies {
-    [K in keyof MarkdownProps]-?: unknown;
+    [K in keyof MarkdownProps]-?: unknown
   },
 
   setup(props) {
-    const getMarkdown = () => props.markdown ?? '';
+    const getMarkdown = () => props.markdown ?? ''
 
     const processor = computed<MarkdownProcessor>(() => {
-      const options = props.options;
-      const propPlugins = props.plugins ?? [];
+      const options = props.options
+      const propPlugins = props.plugins ?? []
 
       return createProcessor({
         ...options,
         plugins: [...propPlugins, removeLineJumpNodesPlugin()],
-      });
-    });
+      })
+    })
 
-    const hast = shallowRef(parse(processor.value, getMarkdown()));
-    let streamMemory: ParseMemory | undefined;
-    let activeProcessor: MarkdownProcessor | undefined;
+    const hast = shallowRef(parse(processor.value, getMarkdown()))
+    let streamMemory: ParseMemory | undefined
+    let activeProcessor: MarkdownProcessor | undefined
 
     watchEffect(() => {
-      const currentProcessor = processor.value;
-      const markdown = getMarkdown();
+      const currentProcessor = processor.value
+      const markdown = getMarkdown()
 
       if (activeProcessor && activeProcessor !== currentProcessor) {
-        streamMemory = props.stream ? createMemory() : undefined;
+        streamMemory = props.stream ? createMemory() : undefined
       }
 
-      activeProcessor = currentProcessor;
+      activeProcessor = currentProcessor
 
       if (props.stream) {
-        streamMemory ??= createMemory();
-        hast.value = parse(currentProcessor, markdown, streamMemory);
-        return;
+        streamMemory ??= createMemory()
+        hast.value = parse(currentProcessor, markdown, streamMemory)
+        return
       }
 
       if (streamMemory) {
-        streamMemory.flush = true;
-        streamMemory = undefined;
-        return;
+        streamMemory.flush = true
+        streamMemory = undefined
+        return
       }
 
-      hast.value = parse(currentProcessor, markdown);
-    });
+      hast.value = parse(currentProcessor, markdown)
+    })
 
-    const { components: providedComponents, transition: providedTransition } = useProvideMarkdown(computed(() => props.components), computed(() => props.transition));
+    const { components: providedComponents, transition: providedTransition } = useProvideMarkdown(
+      computed(() => props.components),
+      computed(() => props.transition),
+    )
 
     return () => {
       return h(NodeList, {
@@ -93,7 +94,7 @@ export const Markdown = defineComponent({
         parentNode: hast.value,
         components: providedComponents.value,
         transition: providedTransition.value,
-      });
-    };
+      })
+    }
   },
-});
+})

@@ -4,27 +4,32 @@ import type {
   Root,
   RootContent,
   Text as HastText,
-} from 'hast';
-import { computed, defineComponent, h, markRaw, type PropType } from 'vue';
-import { Markdown } from '../Markdown.ts';
-import NodeList from '../components/NodeList.vue';
-import { useMarkdown, useProvideMarkdown } from '../composables/markdown.ts';
-import type { MarkdownProps } from '../types.ts';
+} from 'hast'
 
-export { NodeList };
+import { computed, defineComponent, h, markRaw, type PropType } from 'vue'
 
-type TestNode = RootContent;
+import type { MarkdownProps } from '../types.ts'
 
-const SyncTextComponent = markRaw(defineComponent({
-  name: 'SyncTextComponent',
-  props: ['element'],
-  setup(props) {
-    return () => props.element.value;
-  },
-}));
+import NodeList from '../components/NodeList.vue'
+import { useMarkdown, useProvideMarkdown } from '../composables/markdown.ts'
+import { Markdown } from '../Markdown.ts'
+
+export { NodeList }
+
+type TestNode = RootContent
+
+const SyncTextComponent = markRaw(
+  defineComponent({
+    name: 'SyncTextComponent',
+    props: ['element'],
+    setup(props) {
+      return () => props.element.value
+    },
+  }),
+)
 
 export function text(value: string): HastText {
-  return { type: 'text', value };
+  return { type: 'text', value }
 }
 
 export function element(
@@ -37,33 +42,40 @@ export function element(
     tagName,
     properties,
     children,
-  } as const;
+  } as const
 }
 
 export function createRecursiveComponent(tag: string, marker = tag) {
-  return markRaw(defineComponent({
-    name: `Test${tag[0]?.toUpperCase() ?? 'X'}${tag.slice(1)}`,
-    props: ['element', 'nodeIdx', 'deep', 'nodeKey', 'parentNode'],
-    setup(props) {
-      const { components, transition } = useMarkdown();
+  return markRaw(
+    defineComponent({
+      name: `Test${tag[0]?.toUpperCase() ?? 'X'}${tag.slice(1)}`,
+      props: ['element', 'nodeIdx', 'deep', 'nodeKey', 'parentNode'],
+      setup(props) {
+        const { components, transition } = useMarkdown()
 
-      return () => h(tag, {
-        'data-test-tag': marker,
-        'data-node-key': String(props.nodeKey),
-        'data-deep': String(props.deep),
-      }, [
-        h(NodeList, {
-          nodes: props.element.children,
-          nodeIdx: props.nodeIdx,
-          deep: props.deep,
-          nodeKey: props.nodeKey,
-          parentNode: props.element,
-          components: components.value,
-          transition: transition.value,
-        }),
-      ]);
-    },
-  }));
+        return () =>
+          h(
+            tag,
+            {
+              'data-test-tag': marker,
+              'data-node-key': String(props.nodeKey),
+              'data-deep': String(props.deep),
+            },
+            [
+              h(NodeList, {
+                nodes: props.element.children,
+                nodeIdx: props.nodeIdx,
+                deep: props.deep,
+                nodeKey: props.nodeKey,
+                parentNode: props.element,
+                components: components.value,
+                transition: transition.value,
+              }),
+            ],
+          )
+      },
+    }),
+  )
 }
 
 export const NodeListHarness = defineComponent({
@@ -86,24 +98,28 @@ export const NodeListHarness = defineComponent({
     const mergedComponents = computed<NonNullable<MarkdownProps['components']>>(() => ({
       text: SyncTextComponent,
       ...props.components,
-    }));
+    }))
 
-    useProvideMarkdown(computed(() => mergedComponents.value), computed(() => props.transition));
+    useProvideMarkdown(
+      computed(() => mergedComponents.value),
+      computed(() => props.transition),
+    )
     const parentNode = computed<Root>(() => ({
       type: 'root',
       children: props.nodes,
-    }));
+    }))
 
-    return () => h(NodeList, {
-      nodes: props.nodes,
-      nodeKey: 'root',
-      deep: 0,
-      parentNode: parentNode.value,
-      components: mergedComponents.value,
-      transition: props.transition,
-    });
+    return () =>
+      h(NodeList, {
+        nodes: props.nodes,
+        nodeKey: 'root',
+        deep: 0,
+        parentNode: parentNode.value,
+        components: mergedComponents.value,
+        transition: props.transition,
+      })
   },
-});
+})
 
 export const MarkdownHarness = defineComponent({
   name: 'MarkdownHarness',
@@ -137,15 +153,16 @@ export const MarkdownHarness = defineComponent({
     const mergedComponents = computed<NonNullable<MarkdownProps['components']>>(() => ({
       text: SyncTextComponent,
       ...props.components,
-    }));
+    }))
 
-    return () => h(Markdown, {
-      markdown: props.markdown,
-      options: props.options,
-      plugins: props.plugins,
-      stream: props.stream,
-      components: mergedComponents.value,
-      transition: props.transition,
-    });
+    return () =>
+      h(Markdown, {
+        markdown: props.markdown,
+        options: props.options,
+        plugins: props.plugins,
+        stream: props.stream,
+        components: mergedComponents.value,
+        transition: props.transition,
+      })
   },
-});
+})

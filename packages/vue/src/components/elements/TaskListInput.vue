@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed } from 'vue'
 
-import type { ElementProps } from "../../types";
+import type { ElementProps } from '../../types'
 
-import { elementPropertiesToProps } from "../utils/elementPropertiesToProps";
+import { elementPropertiesToProps } from '../utils/elementPropertiesToProps'
 
 defineOptions({
   inheritAttrs: false,
-});
+})
 
-const { element } = defineProps<ElementProps>();
+const { element } = defineProps<ElementProps>()
 
 const properties = computed(() => {
-  return elementPropertiesToProps(element.properties);
-});
+  return elementPropertiesToProps(element.properties)
+})
 </script>
 
 <template>

@@ -5,7 +5,6 @@
     "types": [
       "vite/client"
     ],
-    "baseUrl": ".",
     "paths": {
       "@mark-sorcery/vue": [
         "../packages/vue/index.ts"

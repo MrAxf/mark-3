@@ -1,38 +1,44 @@
-import { unified } from 'unified';
-import type { Processor } from 'unified';
-import remarkParse from 'remark-parse';
-import remarkRehype from 'remark-rehype';
-import { harden } from 'rehype-harden';
-import rehypeRaw from 'rehype-raw';
-import type { AnyProcessor, MarkdownProcessor, ParseOptions, RemarkHardenOptions } from './types.ts';
-import type { UnifiedPluginEntry } from './types.ts';
-import { getPostprocessors, getPreprocessors, getRehypePlugins, getRemarkPlugins } from './plugins.ts';
+import type { Processor } from 'unified'
 
+import { harden } from 'rehype-harden'
+import rehypeRaw from 'rehype-raw'
+import remarkParse from 'remark-parse'
+import remarkRehype from 'remark-rehype'
+import { unified } from 'unified'
 
+import type { AnyProcessor, MarkdownProcessor, ParseOptions, RemarkHardenOptions } from './types.ts'
+import type { UnifiedPluginEntry } from './types.ts'
 
-const DEFAULT_REMARK_REHYPE_OPTIONS = { allowDangerousHtml: true };
+import {
+  getPostprocessors,
+  getPreprocessors,
+  getRehypePlugins,
+  getRemarkPlugins,
+} from './plugins.ts'
+
+const DEFAULT_REMARK_REHYPE_OPTIONS = { allowDangerousHtml: true }
 
 const DEFAULT_REHYPE_HARDEN_OPTIONS: RemarkHardenOptions = {
-  allowedImagePrefixes: ["*"],
-  allowedLinkPrefixes: ["*"],
-  allowedProtocols: ["*"],
+  allowedImagePrefixes: ['*'],
+  allowedLinkPrefixes: ['*'],
+  allowedProtocols: ['*'],
   allowDataImages: true,
-};
+}
 
 function applyPlugins(processor: AnyProcessor, plugins: UnifiedPluginEntry[]): AnyProcessor {
-  let current = processor;
+  let current = processor
 
   for (const plugin of plugins) {
     if (Array.isArray(plugin)) {
-      const [pluginFactory, ...args] = plugin;
-      current = current.use(pluginFactory as any, ...(args as any[])) as Processor;
-      continue;
+      const [pluginFactory, ...args] = plugin
+      current = current.use(pluginFactory as any, ...(args as any[])) as Processor
+      continue
     }
 
-    current = current.use(plugin as any) as Processor;
+    current = current.use(plugin as any) as Processor
   }
 
-  return current;
+  return current
 }
 
 /**
@@ -44,32 +50,32 @@ function applyPlugins(processor: AnyProcessor, plugins: UnifiedPluginEntry[]): A
  * HAST tree has been produced.
  */
 export function createProcessor(options?: ParseOptions): MarkdownProcessor {
-  const remarkPlugins = getRemarkPlugins(options);
-  const rehypePlugins = getRehypePlugins(options);
+  const remarkPlugins = getRemarkPlugins(options)
+  const rehypePlugins = getRehypePlugins(options)
 
-  const preprocessors = getPreprocessors(options);
-  const postprocessors = getPostprocessors(options);
+  const preprocessors = getPreprocessors(options)
+  const postprocessors = getPostprocessors(options)
 
-  let processor = unified().use(remarkParse) as unknown as AnyProcessor;
+  let processor = unified().use(remarkParse) as unknown as AnyProcessor
 
-  processor = applyPlugins(processor, remarkPlugins);
+  processor = applyPlugins(processor, remarkPlugins)
 
-  const remarkRehypeOptions = { ...DEFAULT_REMARK_REHYPE_OPTIONS, ...options?.remarkRehypeOptions };
-  const rehypeHardenOptions = { ...DEFAULT_REHYPE_HARDEN_OPTIONS, ...options?.remarkHardenOptions };
+  const remarkRehypeOptions = { ...DEFAULT_REMARK_REHYPE_OPTIONS, ...options?.remarkRehypeOptions }
+  const rehypeHardenOptions = { ...DEFAULT_REHYPE_HARDEN_OPTIONS, ...options?.remarkHardenOptions }
 
   // allowDangerousHtml preserves raw HTML nodes in MDAST so rehype-raw can parse them
-  processor = processor.use(remarkRehype, remarkRehypeOptions) as AnyProcessor;
+  processor = processor.use(remarkRehype, remarkRehypeOptions) as AnyProcessor
 
-  processor = processor.use(harden, rehypeHardenOptions) as AnyProcessor;
+  processor = processor.use(harden, rehypeHardenOptions) as AnyProcessor
 
   // rehype-raw converts raw HTML nodes into real HAST elements
-  processor = processor.use(rehypeRaw) as AnyProcessor;
+  processor = processor.use(rehypeRaw) as AnyProcessor
 
-  processor = applyPlugins(processor, rehypePlugins);
+  processor = applyPlugins(processor, rehypePlugins)
 
   return {
     processor,
     preprocess: (markdown) => preprocessors.reduce((acc, fn) => fn(acc), markdown),
     postprocess: (root) => postprocessors.reduce((acc, fn) => fn(acc), root),
-  };
+  }
 }

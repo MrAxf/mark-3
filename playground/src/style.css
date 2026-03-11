@@ -1,93 +1,95 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
 :root {
-    --bg: #07090c;
-    --surface-1: #10141b;
-    --surface-2: #151b24;
-    --surface-3: #1a2432;
-    --border: #1b2733;
-    --border-hi: #2c3949;
+  --bg: #07090c;
+  --surface-1: #10141b;
+  --surface-2: #151b24;
+  --surface-3: #1a2432;
+  --border: #1b2733;
+  --border-hi: #2c3949;
 
-    --crimson: #cd2828;
-    --crimson-hi: #ff6f6f;
-    --crimson-soft: rgba(205, 40, 40, 0.14);
+  --crimson: #cd2828;
+  --crimson-hi: #ff6f6f;
+  --crimson-soft: rgba(205, 40, 40, 0.14);
 
-    --gold: #d88412;
-    --gold-hi: #ffd05b;
-    --gold-soft: rgba(216, 132, 18, 0.2);
+  --gold: #d88412;
+  --gold-hi: #ffd05b;
+  --gold-soft: rgba(216, 132, 18, 0.2);
 
-    --arc: #19b7e8;
-    --arc-hi: #90e5ff;
-    --arc-soft: rgba(25, 183, 232, 0.15);
+  --arc: #19b7e8;
+  --arc-hi: #90e5ff;
+  --arc-soft: rgba(25, 183, 232, 0.15);
 
-    --text-1: #f2e8dc;
-    --text-2: #c3b5a8;
-    --text-3: #85786d;
+  --text-1: #f2e8dc;
+  --text-2: #c3b5a8;
+  --text-3: #85786d;
 
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 html,
 body,
 #app {
-    margin: 0;
-    min-height: 100vh;
+  margin: 0;
+  min-height: 100vh;
 }
 
 body {
-    min-width: 320px;
-    color: var(--text-1);
-    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
-    background:
-        radial-gradient(900px 500px at 12% -10%, rgba(205, 40, 40, 0.2) 0%, transparent 60%),
-        radial-gradient(1000px 700px at 90% 110%, rgba(216, 132, 18, 0.13) 0%, transparent 62%),
-        repeating-linear-gradient(-45deg,
-            rgba(255, 255, 255, 0.02),
-            rgba(255, 255, 255, 0.02) 10px,
-            rgba(0, 0, 0, 0) 10px,
-            rgba(0, 0, 0, 0) 20px),
-        var(--bg);
+  min-width: 320px;
+  color: var(--text-1);
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  background:
+    radial-gradient(900px 500px at 12% -10%, rgba(205, 40, 40, 0.2) 0%, transparent 60%),
+    radial-gradient(1000px 700px at 90% 110%, rgba(216, 132, 18, 0.13) 0%, transparent 62%),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.02),
+      rgba(255, 255, 255, 0.02) 10px,
+      rgba(0, 0, 0, 0) 10px,
+      rgba(0, 0, 0, 0) 20px
+    ),
+    var(--bg);
 }
 
 a {
-    color: var(--arc-hi);
-    text-decoration: underline;
-    text-decoration-color: rgba(125, 211, 252, 0.35);
+  color: var(--arc-hi);
+  text-decoration: underline;
+  text-decoration-color: rgba(125, 211, 252, 0.35);
 }
 
 a:hover {
-    color: #bae6fd;
+  color: #bae6fd;
 }
 
 button,
 input,
 textarea,
 select {
-    font: inherit;
+  font: inherit;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--bg);
+  background: var(--bg);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #2e3f53;
-    border-radius: 6px;
+  background: #2e3f53;
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #3c526c;
+  background: #3c526c;
 }

@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsdown';
+import { defineConfig } from 'tsdown'
 import Vue from 'unplugin-vue/rolldown'
 
 export default defineConfig({
@@ -16,4 +16,4 @@ export default defineConfig({
   deps: {
     neverBundle: ['vue'],
   },
-});
+})
