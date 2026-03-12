@@ -29,20 +29,22 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "rehype-harden": "^1.1.8",
-    "rehype-raw": "^7.0.0",
-    "rehype-sanitize": "^6.0.0",
-    "remark-gfm": "^4.0.1",
-    "remark-parse": "^11.0.0",
-    "remark-rehype": "^11.1.2",
-    "remend": "^1.2.2",
-    "unified": "^11.0.5"
+    "rehype-harden": "1.1.8",
+    "rehype-raw": "7.0.0",
+    "rehype-sanitize": "6.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-parse": "11.0.0",
+    "remark-rehype": "11.1.2",
+    "remend": "1.2.2",
+    "unified": "11.0.5"
   },
   "devDependencies": {
-    "@types/hast": "^3.0.4",
-    "@types/mdast": "^4.0.4",
-    "@types/unist": "^3.0.3",
-    "tsdown": "^0.21.0"
+    "@tsconfig/node24": "24.0.4",
+    "@types/hast": "3.0.4",
+    "@types/mdast": "4.0.4",
+    "@types/node": "24.12.0",
+    "@types/unist": "3.0.3",
+    "tsdown": "0.21.2"
   },
   "peerDependencies": {
     "typescript": "^5"

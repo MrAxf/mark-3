@@ -28,12 +28,13 @@
   },
   "dependencies": {
     "@mark-sorcery/markdown-parser": "workspace:*",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "5.1.0"
   },
   "devDependencies": {
-    "@types/hast": "^3.0.4",
-    "@types/node": "^24.6.1",
-    "tsdown": "^0.21.0"
+    "@tsconfig/node24": "24.0.4",
+    "@types/hast": "3.0.4",
+    "@types/node": "24.12.0",
+    "tsdown": "0.21.2"
   },
   "peerDependencies": {
     "typescript": "^5"
