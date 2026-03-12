@@ -6,8 +6,8 @@ import remarkParse from 'remark-parse'
 import remarkRehype from 'remark-rehype'
 import { unified } from 'unified'
 
-import type { AnyProcessor, MarkdownProcessor, ParseOptions, RemarkHardenOptions } from './types.ts'
-import type { UnifiedPluginEntry } from './types.ts'
+import type { AnyProcessor, MarkdownProcessor, ParseOptions, RemarkHardenOptions } from '@/types.ts'
+import type { UnifiedPluginEntry } from '@/types.ts'
 
 import {
   getPostprocessors,

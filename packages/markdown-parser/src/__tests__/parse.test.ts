@@ -3,7 +3,7 @@ import type { Plugin } from 'unified'
 
 import { describe, expect, it } from 'vitest'
 
-import type { ParseMemory, ParseOptions } from '../index.ts'
+import type { ParseMemory, ParseOptions } from '@/index.ts'
 
 import { createCorePlugin, createMemory, createProcessor, parse } from '../index.ts'
 

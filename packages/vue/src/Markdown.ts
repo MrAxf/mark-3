@@ -1,11 +1,11 @@
 import { createMemory, createProcessor, parse } from '@mark-sorcery/markdown-parser'
 import { computed, defineComponent, h, shallowRef, watchEffect } from 'vue'
 
-import type { MarkdownProcessor, MarkdownProps, ParseMemory } from './types.ts'
+import type { MarkdownProcessor, MarkdownProps, ParseMemory } from '@/types.ts'
 
-import NodeList from './components/NodeList.vue'
-import { useProvideMarkdown } from './composables/markdown.ts'
-import { removeLineJumpNodesPlugin } from './plugins/remove-line-jump-nodes.ts'
+import NodeList from '@/components/NodeList.vue'
+import { useProvideMarkdown } from '@/composables/markdown.ts'
+import { removeLineJumpNodesPlugin } from '@/plugins/remove-line-jump-nodes.ts'
 
 export const Markdown = defineComponent({
   name: 'Markdown',

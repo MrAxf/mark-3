@@ -11,7 +11,7 @@ import type {
   ParserPlugin,
   RemendOptions,
   UnifiedPluginEntry,
-} from './types.ts'
+} from '@/types.ts'
 
 const DEFAULT_TAB_WIDTH = 4
 const DEFAULT_MAX_CONSECUTIVE_BLANK_LINES = 1

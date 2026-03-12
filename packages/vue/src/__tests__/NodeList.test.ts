@@ -1,8 +1,7 @@
+import { createRecursiveComponent, element, NodeListHarness, text } from '@tests/test-helpers.ts'
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { defineComponent, markRaw } from 'vue'
-
-import { createRecursiveComponent, element, NodeListHarness, text } from './test-helpers.ts'
 
 describe('NodeList', () => {
   it('renderiza nodos de texto sin envoltorios extra', async () => {

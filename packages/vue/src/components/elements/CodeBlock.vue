@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { ElementProps } from '../../types'
+import type { ElementProps } from '@/types'
 
-import { useMarkdown } from '../../composables/markdown'
-import NodeList from '../NodeList.vue'
-import { elementPropertiesToProps } from '../utils/elementPropertiesToProps'
+import NodeList from '@/components/NodeList.vue'
+import { useMarkdown } from '@/composables/markdown'
+import { elementPropertiesToProps } from '@/utils/elementPropertiesToProps'
 
 defineOptions({
   inheritAttrs: false,

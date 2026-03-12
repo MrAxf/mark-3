@@ -1,11 +1,11 @@
+import { createRecursiveComponent, MarkdownHarness, NodeList } from '@tests/test-helpers.ts'
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { defineComponent, h, markRaw, ref } from 'vue'
 
-import type { ParserPlugin } from '../types.ts'
+import type { ParserPlugin } from '@/types.ts'
 
-import { createCorePlugin, useMarkdown } from '../index.ts'
-import { createRecursiveComponent, MarkdownHarness, NodeList } from './test-helpers.ts'
+import { createCorePlugin, useMarkdown } from '@/index.ts'
 
 describe('Markdown', () => {
   it('renderiza markdown basico con componentes anidados', async () => {

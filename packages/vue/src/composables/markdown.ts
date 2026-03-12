@@ -1,8 +1,8 @@
 import { computed, inject, provide, type ComputedRef } from 'vue'
 
-import type { MarkdownProps } from '../types'
+import type { MarkdownProps } from '@/types'
 
-import { DEFAULT_COMPONENTS } from '../components'
+import { DEFAULT_COMPONENTS } from '@/components'
 
 const MARKDOWN_KEY = '__MARK_SORCERY_'
 
@@ -12,7 +12,7 @@ export type MarkdownContext = {
 }
 
 const useProvideMarkdown = (
-  userComponents: ComputedRef<MarkdownProps['components'] | undefined>,
+  userComponents: ComputedRef<MarkdownProps['components']>,
   transition: ComputedRef<MarkdownProps['transition']>,
 ): MarkdownContext => {
   const components = computed<NonNullable<MarkdownProps['components']>>(() => ({

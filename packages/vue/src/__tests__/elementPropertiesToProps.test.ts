@@ -1,9 +1,10 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import Link from '../components/elements/Link.vue'
-import TaskListInput from '../components/elements/TaskListInput.vue'
-import { elementPropertiesToProps } from '../components/utils/elementPropertiesToProps.ts'
+import Link from '@/components/elements/Link.vue'
+import TaskListInput from '@/components/elements/TaskListInput.vue'
+import { elementPropertiesToProps } from '@/utils/elementPropertiesToProps.ts'
+
 import { element, NodeListHarness, text } from './test-helpers.ts'
 
 describe('elementPropertiesToProps', () => {

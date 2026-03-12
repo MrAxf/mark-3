@@ -1,7 +1,7 @@
 import type { Root } from 'hast'
 import type { Root as MdastRoot } from 'mdast'
 
-import type { MarkdownProcessor, ParseMemory } from './types.ts'
+import type { MarkdownProcessor, ParseMemory } from '@/types.ts'
 
 function createEmptyRoot(): Root {
   return {
@@ -63,7 +63,7 @@ function splitStreamingMarkdown(
   }
 
   const lastNode = children[children.length - 1]
-  const splitOffset = lastNode.position?.start.offset
+  const splitOffset = lastNode?.position?.start.offset
 
   if (typeof splitOffset !== 'number' || splitOffset <= 0 || splitOffset > markdown.length) {
     return {

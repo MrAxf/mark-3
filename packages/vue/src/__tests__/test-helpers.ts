@@ -8,7 +8,7 @@ import type {
 
 import { computed, defineComponent, h, markRaw, type PropType } from 'vue'
 
-import type { MarkdownProps } from '../types.ts'
+import type { MarkdownProps } from '@/types.ts'
 
 import NodeList from '../components/NodeList.vue'
 import { useMarkdown, useProvideMarkdown } from '../composables/markdown.ts'

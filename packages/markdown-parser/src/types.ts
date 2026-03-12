@@ -5,7 +5,7 @@ import type { Options as RemarkRehypeOptions } from 'remark-rehype'
 import type { RemendOptions } from 'remend'
 
 import { harden } from 'rehype-harden'
-import { Processor } from 'unified'
+import type { Processor } from 'unified'
 
 export type { Root, RemendOptions }
 export type { RemarkGfmOptions, SanitizeSchema }
