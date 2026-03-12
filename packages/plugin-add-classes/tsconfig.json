@@ -1,17 +1,14 @@
 {
-  "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "declaration": true,
-    "exactOptionalPropertyTypes": true,
-    "isolatedDeclarations": true,
-    "lib": ["ESNext", "DOM"],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "noEmit": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ES2020",
-    "types": ["node"]
-  },
-  "include": ["src", "tsdown.config.ts"]
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    },
+    {
+      "path": "./tsconfig.vitest.json"
+    }
+  ],
 }
