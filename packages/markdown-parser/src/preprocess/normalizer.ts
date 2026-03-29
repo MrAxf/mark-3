@@ -10,7 +10,7 @@ export function normalizeMarkdown(markdown: string, options?: NormalizerOptions)
     normalized = normalized.slice(1)
   }
 
-  normalized = normalized.replace(/\u0000/g, '')
+  normalized = normalized.replaceAll('\0', '')
 
   if (options?.lineEndings !== false) {
     normalized = normalized.replace(/\r\n?/g, '\n')
