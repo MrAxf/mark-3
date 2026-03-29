@@ -1,8 +1,6 @@
 {
   "compilerOptions": {
-    "lib": [
-      "ESNext",
-    ],
+    "lib": ["ESNext"],
     "target": "ESNext",
     "module": "preserve",
     "moduleDetection": "force",
@@ -33,16 +31,9 @@
     "useDefineForClassFields": true,
     //
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
+      "@/*": ["./src/*"]
     }
   },
-  "include": [
-    "./src/**/*.ts",
-    "./src/**/*.d.ts",
-  ],
-  "exclude": [
-    "src/__tests__",
-  ]
+  "include": ["./src/**/*.ts", "./src/**/*.d.ts"],
+  "exclude": ["src/__tests__"]
 }
