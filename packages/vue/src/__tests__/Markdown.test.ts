@@ -1,3 +1,5 @@
+import type { Element, Root } from 'hast'
+
 import { createRecursiveComponent, MarkdownHarness, NodeList } from '@tests/test-helpers.ts'
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
@@ -5,14 +7,13 @@ import { defineComponent, h, markRaw, ref } from 'vue'
 
 import type { ParserPlugin } from '@/types.ts'
 
-import { createCorePlugin, useMarkdown } from '@/index.ts'
+import { useMarkdown } from '@/index.ts'
 
 describe('Markdown', () => {
   it('renderiza markdown basico con componentes anidados', async () => {
     const wrapper = mount(MarkdownHarness, {
       props: {
         markdown: '**hola**',
-        plugins: [createCorePlugin()],
         components: {
           p: createRecursiveComponent('p', 'paragraph'),
           strong: createRecursiveComponent('strong', 'bold'),
@@ -62,19 +63,19 @@ describe('Markdown', () => {
 
   it('reconstruye el processor cuando cambia plugins', async () => {
     const headingPlugin: ParserPlugin = {
-      postprocess: (root) => {
-        const heading = root.children[0]
-        if (heading?.type === 'element' && heading.tagName === 'h1') {
-          heading.tagName = 'h2'
-        }
-        return root
-      },
+      rehype: [
+        () => (tree: Root) => {
+          const heading = tree.children[0]
+          if (heading?.type === 'element' && (heading as Element).tagName === 'h1') {
+            ;(heading as Element).tagName = 'h2'
+          }
+        },
+      ],
     }
 
     const wrapper = mount(MarkdownHarness, {
       props: {
         markdown: '# Titulo',
-        plugins: [createCorePlugin()],
         components: {
           h1: createRecursiveComponent('h1', 'h1'),
           h2: createRecursiveComponent('h2', 'h2'),
@@ -98,7 +99,6 @@ describe('Markdown', () => {
     const wrapper = mount(MarkdownHarness, {
       props: {
         markdown: '# Title\n\n**hola',
-        plugins: [createCorePlugin()],
         stream: true,
         components: {
           h1: createRecursiveComponent('h1', 'h1'),
@@ -125,7 +125,7 @@ describe('Markdown', () => {
     expect(wrapper.find('[data-test-tag="li"]').text()).toBe('item')
   })
 
-  it('aplica createCorePlugin para tablas GFM cuando hay componentes registrados', async () => {
+  it('renderiza tablas GFM por defecto y las deshabilita con options.gfm: false', async () => {
     const components = {
       p: createRecursiveComponent('p', 'paragraph'),
       table: createRecursiveComponent('table', 'table'),
@@ -139,7 +139,6 @@ describe('Markdown', () => {
     const withGfm = mount(MarkdownHarness, {
       props: {
         markdown: '| a | b |\n|---|---|\n| c | d |',
-        plugins: [createCorePlugin()],
         components,
       },
     })
@@ -152,7 +151,7 @@ describe('Markdown', () => {
     const withoutGfm = mount(MarkdownHarness, {
       props: {
         markdown: '| a | b |\n|---|---|\n| c | d |',
-        plugins: [createCorePlugin({ gfm: false })],
+        options: { gfm: false },
         components,
       },
     })
@@ -189,7 +188,6 @@ describe('Markdown', () => {
     const wrapper = mount(MarkdownHarness, {
       props: {
         markdown: '# **Hola**',
-        plugins: [createCorePlugin()],
         components: {
           h1: CustomHeading,
           strong: createRecursiveComponent('strong', 'bold'),
