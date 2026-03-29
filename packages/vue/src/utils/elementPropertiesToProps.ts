@@ -47,7 +47,7 @@ const normalizePropertyName = (propertyName: string) => {
   return propertyName
 }
 
-export const elementPropertiesToProps = (properties: Element['properties']) => {
+export const elementPropertiesToProps = (properties: Element['properties'] | null | undefined) => {
   if (!properties) {
     return {}
   }

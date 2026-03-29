@@ -1,10 +1,8 @@
-export { Markdown } from '@/Markdown.ts'
-export { default as NodeList } from '@/components/NodeList.vue'
-export { DEFAULT_COMPONENTS } from '@/components/index.ts'
-export { useMarkdown } from '@/composables/markdown.ts'
-export { createCorePlugin } from '@mark-sorcery/markdown-parser'
+export { Markdown } from './Markdown.ts'
+export { default as NodeList } from './components/NodeList.vue'
+export { DEFAULT_COMPONENTS } from './components/index.ts'
+export { useMarkdown } from './composables/markdown.ts'
 export type {
-  CorePluginOptions,
   MarkdownProcessor,
   MarkdownOptions,
   MarkdownProps,
@@ -16,4 +14,4 @@ export type {
   NodeListProps,
   MarkdownNodeProps,
   ItemProps,
-} from '@/types.ts'
+} from './types.ts'

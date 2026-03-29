@@ -3,9 +3,9 @@ import type { Nodes } from 'hast'
 
 import { computed, h, Transition as VueTransition } from 'vue'
 
-import type { NodeListProps } from '@/types'
+import type { NodeListProps } from '../types'
 
-import { useMarkdown } from '@/composables/markdown'
+import { useMarkdown } from '../composables/markdown'
 
 defineOptions({
   inheritAttrs: false,

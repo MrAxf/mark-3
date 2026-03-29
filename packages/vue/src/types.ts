@@ -1,5 +1,4 @@
 import type {
-  CorePluginOptions,
   MarkdownProcessor,
   ParseMemory,
   ParseOptions,
@@ -8,7 +7,7 @@ import type {
 import type { Element, Nodes, Text } from 'hast'
 import type { BaseTransitionProps, Component } from 'vue'
 
-export type { CorePluginOptions, MarkdownProcessor, ParseMemory, ParseOptions, ParserPlugin }
+export type { MarkdownProcessor, ParseMemory, ParseOptions, ParserPlugin }
 
 /**
  * Configuration forwarded to Vue's `<Transition>` component.

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { ElementProps } from '@/types'
+import type { ElementProps } from '../../types'
 
-import { elementPropertiesToProps } from '@/utils/elementPropertiesToProps'
+import { elementPropertiesToProps } from '../../utils/elementPropertiesToProps'
 
 defineOptions({
   inheritAttrs: false,

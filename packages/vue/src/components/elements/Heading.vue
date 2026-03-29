@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { ElementProps } from '@/types'
+import type { ElementProps } from '../../types'
 
-import NodeList from '@/components/NodeList.vue'
-import { useMarkdown } from '@/composables/markdown'
-import { elementPropertiesToProps } from '@/utils/elementPropertiesToProps'
+import { useMarkdown } from '../../composables/markdown'
+import { elementPropertiesToProps } from '../../utils/elementPropertiesToProps'
+import NodeList from '../NodeList.vue'
 
 defineOptions({
   inheritAttrs: false,
