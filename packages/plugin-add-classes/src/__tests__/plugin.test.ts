@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest'
 import { createAddClassesPlugin, rehypeAddClasses } from '@/index.ts'
 
 function parseMarkdown(markdown: string, plugins = [createAddClassesPlugin()]): Root {
-  return parse(createProcessor({ plugins }), markdown)
+  // parser v0.5 enables sanitize by default; disable it in these tests so className can be asserted.
+  return parse(createProcessor({ plugins, sanitize: false }), markdown)
 }
 
 function findElement(root: Root, tagName: string): Element | undefined {
@@ -97,6 +98,7 @@ describe('rehypeAddClasses', () => {
   it('can be used directly as a rehype plugin entry', () => {
     const result = parse(
       createProcessor({
+        sanitize: false,
         plugins: [
           {
             rehype: [[rehypeAddClasses, { elements: { strong: 'font-semibold' } }]],
@@ -107,5 +109,63 @@ describe('rehypeAddClasses', () => {
     )
 
     expect(getClassNames(findElement(result, 'strong'))).toEqual(['font-semibold'])
+  })
+
+  it('merges when existing className is a string property', () => {
+    const setStringClassName = () => (tree: Root) => {
+      const paragraph = findElement(tree, 'p')
+
+      if (!paragraph) {
+        return
+      }
+
+      paragraph.properties = {
+        ...paragraph.properties,
+        className: 'existing-string',
+      }
+    }
+
+    const result = parse(
+      createProcessor({
+        sanitize: false,
+        plugins: [
+          {
+            rehype: [setStringClassName, [rehypeAddClasses, { elements: { p: 'copy' } }]],
+          },
+        ],
+      }),
+      'Paragraph',
+    )
+
+    expect(getClassNames(findElement(result, 'p'))).toEqual(['existing-string', 'copy'])
+  })
+
+  it('merges when existing className is an array property', () => {
+    const setArrayClassName = () => (tree: Root) => {
+      const paragraph = findElement(tree, 'p')
+
+      if (!paragraph) {
+        return
+      }
+
+      paragraph.properties = {
+        ...paragraph.properties,
+        className: ['existing-array'],
+      }
+    }
+
+    const result = parse(
+      createProcessor({
+        sanitize: false,
+        plugins: [
+          {
+            rehype: [setArrayClassName, [rehypeAddClasses, { elements: { p: 'copy' } }]],
+          },
+        ],
+      }),
+      'Paragraph',
+    )
+
+    expect(getClassNames(findElement(result, 'p'))).toEqual(['existing-array', 'copy'])
   })
 })

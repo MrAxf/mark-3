@@ -20,6 +20,8 @@ import { createProcessor, parse } from '@mark-sorcery/markdown-parser'
 import { createAddClassesPlugin } from '@mark-sorcery/plugin-add-classes'
 
 const processor = createProcessor({
+  // Si dejas sanitize activo, asegúrate de permitir className en tu schema.
+  sanitize: false,
   plugins: [
     createAddClassesPlugin({
       elements: {
@@ -63,5 +65,6 @@ interface AddClassesOptions {
 
 ```bash
 bun run test
+bun run test:coverage
 bun run build
 ```
