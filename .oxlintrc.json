@@ -4,9 +4,5 @@
     "typeAware": true,
     "typeCheck": true
   },
-  "plugins": [
-    "import",
-    "vitest",
-    "promise"
-  ]
+  "plugins": ["import", "vitest", "promise"]
 }
