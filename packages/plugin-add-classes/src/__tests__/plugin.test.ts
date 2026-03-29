@@ -3,7 +3,7 @@ import type { Element, Root } from 'hast'
 import { createProcessor, parse } from '@mark-sorcery/markdown-parser'
 import { describe, expect, it } from 'vitest'
 
-import { createAddClassesPlugin, rehypeAddClasses } from '../index.ts'
+import { createAddClassesPlugin, rehypeAddClasses } from '@/index.ts'
 
 function parseMarkdown(markdown: string, plugins = [createAddClassesPlugin()]): Root {
   return parse(createProcessor({ plugins }), markdown)
