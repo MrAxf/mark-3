@@ -25,20 +25,18 @@ const { components, transition } = useMarkdown()
   display: flex;
   align-items: center;
   gap: 0.5em;
-  color: #ffd05b;
+  color: var(--ink-strong);
   font-size: inherit;
   margin: 1em 0 0.5em;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
 }
 
 .accent {
-  color: #ff6f6f;
+  color: var(--accent);
   font-size: 0.68em;
   opacity: 1;
   user-select: none;
-  text-shadow: 0 0 10px rgba(205, 40, 40, 0.5);
   flex-shrink: 0;
 }
 </style>

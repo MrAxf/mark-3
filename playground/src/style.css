@@ -1,95 +1,105 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  --bg: #07090c;
-  --surface-1: #10141b;
-  --surface-2: #151b24;
-  --surface-3: #1a2432;
-  --border: #1b2733;
-  --border-hi: #2c3949;
+    --bg: #131015;
+    --surface: rgba(24, 20, 30, 0.9);
+    --surface-strong: rgba(17, 14, 23, 0.95);
+    --surface-soft: rgba(32, 26, 40, 0.92);
 
-  --crimson: #cd2828;
-  --crimson-hi: #ff6f6f;
-  --crimson-soft: rgba(205, 40, 40, 0.14);
+    --ink: #e9dfd1;
+    --ink-strong: #f5e9d8;
+    --ink-muted: #c9b9a6;
+    --ink-dim: #9f9182;
 
-  --gold: #d88412;
-  --gold-hi: #ffd05b;
-  --gold-soft: rgba(216, 132, 18, 0.2);
+    --line: #4c4054;
+    --line-soft: #3d3443;
 
-  --arc: #19b7e8;
-  --arc-hi: #90e5ff;
-  --arc-soft: rgba(25, 183, 232, 0.15);
+    --accent: #e2c37d;
+    --accent-soft: #7d6240;
+    --danger: #d17468;
 
-  --text-1: #f2e8dc;
-  --text-2: #c3b5a8;
-  --text-3: #85786d;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 html,
 body,
 #app {
-  margin: 0;
-  min-height: 100vh;
+    margin: 0;
+    min-height: 100vh;
 }
 
 body {
-  min-width: 320px;
-  color: var(--text-1);
-  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
-  background:
-    radial-gradient(900px 500px at 12% -10%, rgba(205, 40, 40, 0.2) 0%, transparent 60%),
-    radial-gradient(1000px 700px at 90% 110%, rgba(216, 132, 18, 0.13) 0%, transparent 62%),
-    repeating-linear-gradient(
-      -45deg,
-      rgba(255, 255, 255, 0.02),
-      rgba(255, 255, 255, 0.02) 10px,
-      rgba(0, 0, 0, 0) 10px,
-      rgba(0, 0, 0, 0) 20px
-    ),
-    var(--bg);
+    min-width: 320px;
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    background:
+        radial-gradient(76rem 52rem at 82% -14%, rgba(226, 195, 125, 0.16), transparent 62%),
+        radial-gradient(68rem 42rem at 5% 110%, rgba(102, 68, 142, 0.24), transparent 68%),
+        radial-gradient(35rem 20rem at 48% 8%, rgba(170, 135, 80, 0.08), transparent 72%),
+        linear-gradient(170deg, #141016, #0d0a11 58%, #121014);
 }
 
-a {
-  color: var(--arc-hi);
-  text-decoration: underline;
-  text-decoration-color: rgba(125, 211, 252, 0.35);
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.18;
+    background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(circle at center, black 56%, transparent 100%);
 }
 
-a:hover {
-  color: #bae6fd;
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(22rem 10rem at 20% 12%, rgba(226, 195, 125, 0.05), transparent 70%),
+        radial-gradient(26rem 12rem at 78% 20%, rgba(156, 121, 199, 0.06), transparent 74%);
+    mix-blend-mode: screen;
 }
 
 button,
 input,
 textarea,
 select {
-  font: inherit;
+    font: inherit;
 }
 
-/* Custom scrollbar */
+textarea,
+input,
+select {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+a {
+    color: color-mix(in srgb, var(--accent) 74%, white);
+}
+
+a:hover {
+    color: #f3deb3;
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg);
+    width: 9px;
+    height: 9px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2e3f53;
-  border-radius: 6px;
+    background: #5b4e65;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #3c526c;
+::-webkit-scrollbar-track {
+    background: #17131c;
 }

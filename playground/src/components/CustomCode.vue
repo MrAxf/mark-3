@@ -54,24 +54,23 @@ watch(
 
 <style scoped>
 .shiki-wrapper {
-  border: 2px solid #3d3123;
-  border-left: 8px solid var(--gold);
-  border-radius: 0;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
   overflow: hidden;
-  margin: 1rem 0;
-  box-shadow: 4px 4px 0 #090b0f;
+  margin: 0.9rem 0;
+  background: var(--surface-soft);
 }
 
 .shiki-wrapper :deep(pre) {
   margin: 0;
-  padding: 1rem 1.25rem;
+  padding: 0.9rem 1rem;
   overflow-x: auto;
-  font-size: 0.88rem;
-  line-height: 1.65;
-  background: #0a0f16 !important;
+  font-size: 0.84rem;
+  line-height: 1.62;
+  background: #121019 !important;
 }
 
 .shiki-wrapper :deep(code) {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
 }
 </style>

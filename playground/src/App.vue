@@ -1,111 +1,116 @@
 <script setup lang="ts">
 import type { MarkdownProps, ParserPlugin } from '@mark-sorcery/vue'
-import type { Element } from 'hast'
+import type { Element, Root } from 'hast'
 
 import { createAddClassesPlugin } from '@mark-sorcery/plugin-add-classes'
-import { createCorePlugin, Markdown } from '@mark-sorcery/vue'
-import { computed, markRaw, ref } from 'vue'
+import { Markdown } from '@mark-sorcery/vue'
+import { computed, markRaw, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 
 import CustomCode from './components/CustomCode.vue'
 import CustomHeading from './components/CustomHeading.vue'
 
-type PostprocessFn = Extract<
-  NonNullable<ParserPlugin['postprocess']>,
-  (...args: never[]) => unknown
->
+const SAMPLE = `# Grimorio de pruebas
 
-const SAMPLE = `# Streaming Markdown Playground
+Bienvenido al nuevo playground de **Mark Sorcery**.
 
-Welcome! Type in the editor or hit **Simulate Stream** to watch markdown render live.
+## Capacidades
 
-Toggle the **Accent plugin** to see extra processor plugins applied by the Vue component.
+- Render de markdown en vivo
+- Plugins rehype configurables
+- Componentes Vue personalizados
+- Transiciones por nodo
 
-## Features
+## Tabla
 
-- **Bold**, *italic*, ~~strikethrough~~
-- \`inline code\`
-- [Links](https://vuejs.org)
-- GFM tables and task lists
+| Opcion | Estado |
+|---|---|
+| stream | activo |
+| gfm | configurable |
+| sanitize | configurable |
 
-## GFM Table
+## Código
 
-| Library | Role | Status |
-|---|---|---|
-| remark | Markdown -> MDAST | ✅ |
-| rehype | MDAST -> HAST | ✅ |
-| remend | Streaming repair | ✅ |
-| unified | Pipeline engine | ✅ |
+\`\`\`ts
+import { Markdown } from '@mark-sorcery/vue'
 
-## Task List
-
-- [x] Create markdown parser
-- [x] Create Vue component
-- [ ] Ship to production
-
-## Code Block
-
-\`\`\`typescript
-import { createCorePlugin, Markdown } from '@mark-sorcery/vue'
-
-const md = ref('# Hello streaming!')
-const plugins = [createCorePlugin()]
+const markdown = '# Hechizo listo'
 \`\`\`
 
-## Mermaid Diagram
+## Mermaid
 
 \`\`\`mermaid
 flowchart LR
-  A[markdown] --> B[remark]
-  B --> C[MDAST]
-  C --> D[rehype]
-  D --> E[HAST]
-  E --> F[Vue components]
-  F --> G[DOM]
+  A[Entrada] --> B[Parser]
+  B --> C[HAST]
+  C --> D[Vue]
 \`\`\`
 
-## Another Diagram
-
-\`\`\`mermaid
-sequenceDiagram
-  participant User
-  participant Markdown
-  participant Parser
-  User->>Markdown: :markdown prop
-  Markdown->>Parser: parse(processor, markdown)
-  Parser-->>Markdown: HAST Root
-  Markdown-->>User: nested components rendered
-\`\`\`
-
-## Inline HTML (sanitized)
-
-<b>Bold HTML</b> and <em>italic HTML</em> are kept.
-Dangerous tags like \`<iframe>\`, \`<script>\` and event attributes are stripped by rehype-sanitize.
+> La interfaz está pensada para trabajar rápido sin ruido visual.
 `
 
+type Mode = 'default' | 'off' | 'custom'
+type PreprocessMode = 'default' | 'off' | 'custom'
+type TransitionMode = 'off' | 'default' | 'custom'
+
+type ComponentsPreset = 'full' | 'headings' | 'code-only'
+
 const markdown = ref(SAMPLE)
-const streaming = ref(false)
+const panelOpen = ref(true)
+const advancedMode = ref(false)
+const autoscrollEnabled = ref(true)
+const previewRef = ref<HTMLElement | null>(null)
+
+const stream = ref(false)
 let streamTimer: ReturnType<typeof setTimeout> | null = null
+let autoscrollFrame: ReturnType<typeof requestAnimationFrame> | null = null
 
-const gfm = ref(true)
-const remendEnabled = ref(true)
-const sanitizeEnabled = ref(true)
-const accentPluginEnabled = ref(false)
-const transitionsEnabled = ref(true)
+const gfmMode = ref<Mode>('default')
+const gfmCustom = ref('{}')
 
-const markdownTransition = computed(() => {
-  if (!transitionsEnabled.value) {
-    return false
+const sanitizeMode = ref<Mode>('default')
+const sanitizeCustom = ref('{}')
+
+const preprocessEnabled = ref(true)
+const remendMode = ref<PreprocessMode>('default')
+const remendCustom = ref('{}')
+const normalizerMode = ref<PreprocessMode>('default')
+const normalizerCustom = ref('{"maxConsecutiveBlankLines": 1}')
+
+const removeBlankTextNodes = ref<'default' | 'off'>('default')
+
+const remarkRehypeMode = ref<'default' | 'custom'>('default')
+const remarkRehypeCustom = ref('{}')
+
+const remarkHardenMode = ref<'default' | 'custom'>('default')
+const remarkHardenCustom = ref('{}')
+
+const addClassesPluginEnabled = ref(true)
+const addClassH1 = ref('grimoire-heading')
+const addClassPre = ref('grimoire-pre')
+const accentPluginEnabled = ref(true)
+
+const componentsEnabled = ref(true)
+const componentsPreset = ref<ComponentsPreset>('full')
+const useH2Override = ref(true)
+const useH3Override = ref(true)
+const usePreOverride = ref(true)
+
+const transitionMode = ref<TransitionMode>('default')
+const transitionName = ref('sigil-rise')
+const transitionCustom = ref('{"mode": "out-in"}')
+
+function parseJson(raw: string): { value?: unknown; error?: string } {
+  try {
+    return { value: JSON.parse(raw) }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'JSON inválido' }
   }
-
-  return {
-    name: 'forge-fade',
-  }
-})
+}
 
 function appendClass(node: Element, className: string) {
   const current = node.properties?.className
   const classes = Array.isArray(current)
-    ? current.map((value) => String(value))
+    ? current.map((item) => String(item))
     : typeof current === 'string'
       ? current.split(/\s+/).filter(Boolean)
       : []
@@ -137,35 +142,155 @@ function walkElements(node: { children?: unknown[] }, visit: (element: Element) 
 }
 
 const accentPlugin: ParserPlugin = {
-  postprocess: (root: Parameters<PostprocessFn>[0]) => {
-    walkElements(root, (element) => {
-      if (element.tagName === 'h2' || element.tagName === 'h3') {
-        appendClass(element, 'plugin-accent')
-      }
+  rehype: [
+    () => (root: Root) => {
+      walkElements(root, (element) => {
+        if (element.tagName === 'h2' || element.tagName === 'h3') {
+          appendClass(element, 'plugin-accent')
+        }
 
-      if (element.tagName === 'pre') {
-        appendClass(element, 'plugin-frame')
-      }
-    })
-
-    return root
-  },
+        if (element.tagName === 'blockquote') {
+          appendClass(element, 'plugin-quote')
+        }
+      })
+    },
+  ],
 }
 
+const resolvedOptions = computed(() => {
+  const options: NonNullable<MarkdownProps['options']> = {}
+  const errors: string[] = []
+
+  if (gfmMode.value === 'off') {
+    options.gfm = false
+  } else if (gfmMode.value === 'custom') {
+    const parsed = parseJson(gfmCustom.value)
+    if (parsed.error) {
+      errors.push(`gfm JSON: ${parsed.error}`)
+    } else {
+      options.gfm = parsed.value as NonNullable<MarkdownProps['options']>['gfm']
+    }
+  }
+
+  if (sanitizeMode.value === 'off') {
+    options.sanitize = false
+  } else if (sanitizeMode.value === 'custom') {
+    const parsed = parseJson(sanitizeCustom.value)
+    if (parsed.error) {
+      errors.push(`sanitize JSON: ${parsed.error}`)
+    } else {
+      options.sanitize = parsed.value as NonNullable<MarkdownProps['options']>['sanitize']
+    }
+  }
+
+  if (preprocessEnabled.value) {
+    const preprocess: Record<string, unknown> = {}
+
+    if (remendMode.value === 'off') {
+      preprocess.remend = false
+    } else if (remendMode.value === 'custom') {
+      const parsed = parseJson(remendCustom.value)
+      if (parsed.error) {
+        errors.push(`remend JSON: ${parsed.error}`)
+      } else {
+        preprocess.remend = parsed.value
+      }
+    }
+
+    if (normalizerMode.value === 'off') {
+      preprocess.normalizer = false
+    } else if (normalizerMode.value === 'custom') {
+      const parsed = parseJson(normalizerCustom.value)
+      if (parsed.error) {
+        errors.push(`normalizer JSON: ${parsed.error}`)
+      } else {
+        preprocess.normalizer = parsed.value
+      }
+    }
+
+    options.preprocess = preprocess
+  }
+
+  if (removeBlankTextNodes.value === 'off') {
+    options.removeBlankTextNodes = false
+  }
+
+  if (remarkRehypeMode.value === 'custom') {
+    const parsed = parseJson(remarkRehypeCustom.value)
+    if (parsed.error) {
+      errors.push(`remarkRehypeOptions JSON: ${parsed.error}`)
+    } else {
+      options.remarkRehypeOptions = parsed.value as NonNullable<
+        MarkdownProps['options']
+      >['remarkRehypeOptions']
+    }
+  }
+
+  if (remarkHardenMode.value === 'custom') {
+    const parsed = parseJson(remarkHardenCustom.value)
+    if (parsed.error) {
+      errors.push(`remarkHardenOptions JSON: ${parsed.error}`)
+    } else {
+      options.remarkHardenOptions = parsed.value as NonNullable<
+        MarkdownProps['options']
+      >['remarkHardenOptions']
+    }
+  }
+
+  return {
+    options,
+    errors,
+  }
+})
+
+const transitionResult = computed(() => {
+  if (transitionMode.value === 'off') {
+    return {
+      transition: false as MarkdownProps['transition'],
+      error: '',
+    }
+  }
+
+  if (transitionMode.value === 'default') {
+    return {
+      transition: {
+        name: transitionName.value,
+      } as MarkdownProps['transition'],
+      error: '',
+    }
+  }
+
+  const parsed = parseJson(transitionCustom.value)
+  if (parsed.error) {
+    return {
+      transition: {
+        name: transitionName.value,
+      } as MarkdownProps['transition'],
+      error: `transition JSON: ${parsed.error}`,
+    }
+  }
+
+  return {
+    transition: parsed.value as MarkdownProps['transition'],
+    error: '',
+  }
+})
+
+const markdownOptions = computed<MarkdownProps['options']>(() => resolvedOptions.value.options)
+
 const processorPlugins = computed<ParserPlugin[]>(() => {
-  const plugins: ParserPlugin[] = [
-    createCorePlugin({
-      gfm: gfm.value ? undefined : false,
-      remend: remendEnabled.value ? true : false,
-      sanitize: sanitizeEnabled.value ? undefined : false,
-    }),
-    createAddClassesPlugin({
-      elements: {
-        h1: 'custom-heading',
-        pre: 'custom-pre',
-      },
-    }),
-  ]
+  const plugins: ParserPlugin[] = []
+
+  if (addClassesPluginEnabled.value) {
+    plugins.push(
+      createAddClassesPlugin({
+        elements: {
+          h1: addClassH1.value,
+          pre: addClassPre.value,
+        },
+      }),
+    )
+  }
 
   if (accentPluginEnabled.value) {
     plugins.push(accentPlugin)
@@ -174,737 +299,825 @@ const processorPlugins = computed<ParserPlugin[]>(() => {
   return plugins
 })
 
-const useCustomComponents = ref(true)
-
 const customComponents = {
   h2: markRaw(CustomHeading),
   h3: markRaw(CustomHeading),
   pre: markRaw(CustomCode),
 } satisfies NonNullable<MarkdownProps['components']>
 
-const activeComponents = computed<NonNullable<MarkdownProps['components']>>(() => {
-  if (!useCustomComponents.value) {
-    return {} as NonNullable<MarkdownProps['components']>
+watch(componentsPreset, (preset) => {
+  if (preset === 'full') {
+    useH2Override.value = true
+    useH3Override.value = true
+    usePreOverride.value = true
+    return
   }
 
-  return customComponents
+  if (preset === 'headings') {
+    useH2Override.value = true
+    useH3Override.value = true
+    usePreOverride.value = false
+    return
+  }
+
+  useH2Override.value = false
+  useH3Override.value = false
+  usePreOverride.value = true
+})
+
+const activeComponents = computed<NonNullable<MarkdownProps['components']>>(() => {
+  if (!componentsEnabled.value) {
+    return {}
+  }
+
+  const components: NonNullable<MarkdownProps['components']> = {}
+
+  if (useH2Override.value) {
+    components.h2 = customComponents.h2
+  }
+
+  if (useH3Override.value) {
+    components.h3 = customComponents.h3
+  }
+
+  if (usePreOverride.value) {
+    components.pre = customComponents.pre
+  }
+
+  return components
+})
+
+const issues = computed(() => {
+  const errors = [...resolvedOptions.value.errors]
+
+  if (transitionResult.value.error) {
+    errors.push(transitionResult.value.error)
+  }
+
+  return errors
+})
+
+const stats = computed(() => {
+  const text = markdown.value
+  const trimmed = text.trim()
+
+  return {
+    chars: text.length,
+    lines: text.length === 0 ? 0 : text.split(/\r?\n/).length,
+    words: trimmed.length === 0 ? 0 : trimmed.split(/\s+/).length,
+  }
+})
+
+function schedulePreviewAutoscroll() {
+  if (!stream.value || !autoscrollEnabled.value) {
+    return
+  }
+
+  if (autoscrollFrame) {
+    cancelAnimationFrame(autoscrollFrame)
+  }
+
+  autoscrollFrame = requestAnimationFrame(() => {
+    autoscrollFrame = null
+    const container = previewRef.value
+    if (!container) {
+      return
+    }
+
+    container.scrollTop = container.scrollHeight
+  })
+}
+
+watch(markdown, async () => {
+  if (!stream.value || !autoscrollEnabled.value) {
+    return
+  }
+
+  await nextTick()
+  schedulePreviewAutoscroll()
+})
+
+onBeforeUnmount(() => {
+  if (autoscrollFrame) {
+    cancelAnimationFrame(autoscrollFrame)
+    autoscrollFrame = null
+  }
 })
 
 function simulateStream() {
-  if (streaming.value) {
+  if (stream.value) {
     stopStream()
     return
   }
+
+  stream.value = true
   markdown.value = ''
-  streaming.value = true
-  let i = 0
+  let index = 0
 
   function tick() {
-    if (i >= SAMPLE.length) {
-      streaming.value = false
+    if (index >= SAMPLE.length) {
+      stream.value = false
       return
     }
-    const chunk = SAMPLE.slice(i, i + 3)
-    markdown.value += chunk
-    i += 3
+
+    markdown.value += SAMPLE.slice(index, index + 4)
+    index += 4
     streamTimer = setTimeout(tick, 20)
   }
+
   tick()
+  schedulePreviewAutoscroll()
 }
 
 function stopStream() {
-  if (streamTimer) clearTimeout(streamTimer)
-  streaming.value = false
+  if (streamTimer) {
+    clearTimeout(streamTimer)
+    streamTimer = null
+  }
+
+  stream.value = false
   markdown.value = SAMPLE
+}
+
+function resetAll() {
+  stopStream()
+  markdown.value = SAMPLE
+  gfmMode.value = 'default'
+  sanitizeMode.value = 'default'
+  preprocessEnabled.value = true
+  remendMode.value = 'default'
+  normalizerMode.value = 'default'
+  removeBlankTextNodes.value = 'default'
+  remarkRehypeMode.value = 'default'
+  remarkHardenMode.value = 'default'
+  addClassesPluginEnabled.value = true
+  accentPluginEnabled.value = true
+  componentsEnabled.value = true
+  componentsPreset.value = 'full'
+  transitionMode.value = 'default'
+  transitionName.value = 'sigil-rise'
 }
 </script>
 
 <template>
-  <div class="app">
-    <div class="forge-bg" aria-hidden="true">
-      <span class="forge-grid" />
-      <span class="forge-rivet forge-rivet-a" />
-      <span class="forge-rivet forge-rivet-b" />
-      <span class="forge-rivet forge-rivet-c" />
-    </div>
-
-    <header class="header brutal-block">
-      <div class="header-left">
-        <div class="arc-reactor" aria-hidden="true">
-          <span class="arc-shell" />
-          <span class="arc-ring" />
-          <span class="arc-core" />
-        </div>
-        <div>
-          <p class="panel-kicker">prototype bay // mk3</p>
-          <h1 class="title">MARK-3 <span>PLAYGROUND</span></h1>
-          <p class="subtitle">streaming markdown -> HAST -> nested Vue components</p>
-        </div>
+  <div class="shell">
+    <header class="topbar">
+      <div class="topbar-brand">
+        <p class="kicker">mark sorcery // vue playground</p>
+        <h1>Grimorio de render</h1>
       </div>
-      <code class="header-badge">@mark-3/vue</code>
+      <div class="topbar-controls" aria-label="Acciones principales">
+        <div class="topbar-actions">
+          <button class="ghost" type="button" @click="panelOpen = !panelOpen">
+            {{ panelOpen ? 'Ocultar panel' : 'Mostrar panel' }}
+          </button>
+          <button class="ghost" type="button" @click="advancedMode = !advancedMode">
+            {{ advancedMode ? 'Modo básico' : 'Modo avanzado' }}
+          </button>
+        </div>
+
+        <button class="action" type="button" :class="{ active: stream }" @click="simulateStream">
+          {{ stream ? 'Detener stream' : 'Simular stream' }}
+        </button>
+        <button class="ghost" type="button" @click="markdown = SAMPLE">Reset texto</button>
+        <button class="ghost" type="button" @click="resetAll">Reset total</button>
+        <label class="toggle-chip" title="Solo aplica durante streaming">
+          <input v-model="autoscrollEnabled" type="checkbox" />
+          <span>Autoscroll preview (stream)</span>
+        </label>
+      </div>
     </header>
 
-    <section class="controls brutal-block" aria-label="Markdown controls">
-      <div class="control-group">
-        <button class="btn btn-primary" :class="{ active: streaming }" @click="simulateStream">
-          {{ streaming ? 'Stop stream' : 'Simulate stream' }}
-        </button>
-        <button class="btn" @click="markdown = SAMPLE">Reset</button>
-      </div>
-
-      <span class="group-divider" aria-hidden="true" />
-
-      <div class="control-group control-checks">
-        <label class="check">
-          <input v-model="gfm" type="checkbox" />
-          <span>GFM</span>
-        </label>
-        <label class="check">
-          <input v-model="remendEnabled" type="checkbox" />
-          <span>remend</span>
-        </label>
-        <label class="check">
-          <input v-model="sanitizeEnabled" type="checkbox" />
-          <span>sanitize</span>
-        </label>
-        <label class="check">
-          <input v-model="accentPluginEnabled" type="checkbox" />
-          <span>Accent plugin</span>
-        </label>
-        <label class="check">
-          <input v-model="useCustomComponents" type="checkbox" />
-          <span>Custom components</span>
-        </label>
-        <label class="check">
-          <input v-model="transitionsEnabled" type="checkbox" />
-          <span>Transitions</span>
-        </label>
-      </div>
+    <section v-if="issues.length" class="warnings" aria-live="polite">
+      <p>Se detectaron errores de configuración JSON:</p>
+      <ul>
+        <li v-for="issue in issues" :key="issue">{{ issue }}</li>
+      </ul>
     </section>
 
-    <main class="panels">
-      <section class="panel panel-input brutal-block">
-        <header class="panel-label">
-          <span class="label-title">Input</span>
-          <span class="label-meta">{{ markdown.length }} chars</span>
-        </header>
-        <textarea
-          v-model="markdown"
-          class="editor"
-          spellcheck="false"
-          :disabled="streaming"
-          placeholder="Write markdown here..."
-        />
+    <main class="layout" :class="{ 'panel-collapsed': !panelOpen }">
+      <section class="workspace-column">
+        <article class="card editor-card">
+          <header class="card-header">
+            <h2>Entrada Markdown</h2>
+            <div class="meta-row">
+              <span>{{ stats.chars }} chars</span>
+              <span>{{ stats.lines }} lines</span>
+              <span>{{ stats.words }} words</span>
+            </div>
+          </header>
+          <textarea
+            v-model="markdown"
+            class="editor"
+            spellcheck="false"
+            :disabled="stream"
+            placeholder="Escribe un hechizo markdown..."
+          />
+        </article>
+
+        <article class="card output-card">
+          <header class="card-header">
+            <h2>Vista previa</h2>
+            <div class="meta-row">
+              <span>{{ processorPlugins.length }} plugins</span>
+              <span>{{ componentsEnabled ? 'components on' : 'components off' }}</span>
+              <span>{{ transitionMode }}</span>
+            </div>
+          </header>
+
+          <div ref="previewRef" class="prose">
+            <Markdown
+              :markdown="markdown"
+              :options="markdownOptions"
+              :plugins="processorPlugins"
+              :stream="stream"
+              :components="activeComponents"
+              :transition="transitionResult.transition"
+            />
+          </div>
+        </article>
       </section>
 
-      <section class="panel panel-output brutal-block">
-        <header class="panel-label">
-          <span class="label-title">Output</span>
-          <span class="label-meta">HAST -> components</span>
-          <span v-if="streaming" class="live-badge">Live</span>
+      <aside v-if="panelOpen" class="card panel" aria-label="Configuración del parser y render">
+        <header class="panel-title">
+          <h2>Control de hechizos</h2>
+          <p>Todas las opciones del componente Vue.</p>
         </header>
-        <div class="prose">
-          <Markdown
-            :markdown="markdown"
-            :plugins="processorPlugins"
-            :stream="streaming"
-            :components="activeComponents"
-            :transition="markdownTransition"
+
+        <details open class="section">
+          <summary>Contenido</summary>
+          <label class="field">
+            <span>Streaming (prop stream)</span>
+            <input v-model="stream" type="checkbox" />
+          </label>
+        </details>
+
+        <details open class="section">
+          <summary>Parser</summary>
+
+          <label class="field">
+            <span>GFM</span>
+            <select v-model="gfmMode">
+              <option value="default">Default</option>
+              <option value="off">Off</option>
+              <option value="custom">Custom JSON</option>
+            </select>
+          </label>
+          <textarea
+            v-if="gfmMode === 'custom'"
+            v-model="gfmCustom"
+            class="json"
+            spellcheck="false"
           />
-        </div>
-      </section>
+
+          <label class="field">
+            <span>Sanitize</span>
+            <select v-model="sanitizeMode">
+              <option value="default">Default</option>
+              <option value="off">Off</option>
+              <option value="custom">Custom JSON</option>
+            </select>
+          </label>
+          <textarea
+            v-if="sanitizeMode === 'custom'"
+            v-model="sanitizeCustom"
+            class="json"
+            spellcheck="false"
+          />
+
+          <label class="field">
+            <span>Preprocess</span>
+            <input v-model="preprocessEnabled" type="checkbox" />
+          </label>
+
+          <template v-if="preprocessEnabled">
+            <label class="field">
+              <span>remend</span>
+              <select v-model="remendMode">
+                <option value="default">Default</option>
+                <option value="off">Off</option>
+                <option value="custom">Custom JSON</option>
+              </select>
+            </label>
+            <textarea
+              v-if="remendMode === 'custom'"
+              v-model="remendCustom"
+              class="json"
+              spellcheck="false"
+            />
+
+            <label class="field">
+              <span>normalizer</span>
+              <select v-model="normalizerMode">
+                <option value="default">Default</option>
+                <option value="off">Off</option>
+                <option value="custom">Custom JSON</option>
+              </select>
+            </label>
+            <textarea
+              v-if="normalizerMode === 'custom'"
+              v-model="normalizerCustom"
+              class="json"
+              spellcheck="false"
+            />
+          </template>
+
+          <label class="field" v-if="advancedMode">
+            <span>removeBlankTextNodes</span>
+            <select v-model="removeBlankTextNodes">
+              <option value="default">Default</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+
+          <label class="field" v-if="advancedMode">
+            <span>remarkRehypeOptions</span>
+            <select v-model="remarkRehypeMode">
+              <option value="default">Default</option>
+              <option value="custom">Custom JSON</option>
+            </select>
+          </label>
+          <textarea
+            v-if="advancedMode && remarkRehypeMode === 'custom'"
+            v-model="remarkRehypeCustom"
+            class="json"
+            spellcheck="false"
+          />
+
+          <label class="field" v-if="advancedMode">
+            <span>remarkHardenOptions</span>
+            <select v-model="remarkHardenMode">
+              <option value="default">Default</option>
+              <option value="custom">Custom JSON</option>
+            </select>
+          </label>
+          <textarea
+            v-if="advancedMode && remarkHardenMode === 'custom'"
+            v-model="remarkHardenCustom"
+            class="json"
+            spellcheck="false"
+          />
+        </details>
+
+        <details open class="section">
+          <summary>Plugins</summary>
+          <label class="field">
+            <span>Add classes plugin</span>
+            <input v-model="addClassesPluginEnabled" type="checkbox" />
+          </label>
+          <template v-if="addClassesPluginEnabled && advancedMode">
+            <label class="field">
+              <span>Clase para h1</span>
+              <input v-model="addClassH1" type="text" />
+            </label>
+            <label class="field">
+              <span>Clase para pre</span>
+              <input v-model="addClassPre" type="text" />
+            </label>
+          </template>
+
+          <label class="field">
+            <span>Accent plugin rehype</span>
+            <input v-model="accentPluginEnabled" type="checkbox" />
+          </label>
+        </details>
+
+        <details open class="section">
+          <summary>Render</summary>
+          <label class="field">
+            <span>Transition</span>
+            <select v-model="transitionMode">
+              <option value="off">Off</option>
+              <option value="default">Default (name)</option>
+              <option value="custom">Custom JSON</option>
+            </select>
+          </label>
+
+          <label class="field" v-if="transitionMode !== 'off'">
+            <span>transition.name</span>
+            <input v-model="transitionName" type="text" />
+          </label>
+
+          <textarea
+            v-if="transitionMode === 'custom'"
+            v-model="transitionCustom"
+            class="json"
+            spellcheck="false"
+          />
+        </details>
+
+        <details open class="section">
+          <summary>Componentes</summary>
+          <label class="field">
+            <span>Enable components override</span>
+            <input v-model="componentsEnabled" type="checkbox" />
+          </label>
+
+          <template v-if="componentsEnabled">
+            <label class="field">
+              <span>Preset</span>
+              <select v-model="componentsPreset">
+                <option value="full">Full</option>
+                <option value="headings">Solo headings</option>
+                <option value="code-only">Solo code</option>
+              </select>
+            </label>
+
+            <label class="field" v-if="advancedMode">
+              <span>h2 => CustomHeading</span>
+              <input v-model="useH2Override" type="checkbox" />
+            </label>
+            <label class="field" v-if="advancedMode">
+              <span>h3 => CustomHeading</span>
+              <input v-model="useH3Override" type="checkbox" />
+            </label>
+            <label class="field" v-if="advancedMode">
+              <span>pre => CustomCode</span>
+              <input v-model="usePreOverride" type="checkbox" />
+            </label>
+          </template>
+        </details>
+      </aside>
     </main>
   </div>
 </template>
 
 <style scoped>
-.app {
-  position: relative;
-  isolation: isolate;
+.shell {
+  min-height: 100vh;
+  height: 100dvh;
+  padding: clamp(0.75rem, 0.6rem + 0.8vw, 1.4rem);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  height: 100vh;
-  padding: 16px;
+  gap: 0.75rem;
+  overflow: hidden;
 }
 
-.forge-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  background:
-    linear-gradient(145deg, rgba(224, 57, 57, 0.09), transparent 38%),
-    radial-gradient(circle at 85% 20%, rgba(255, 183, 43, 0.11), transparent 55%),
-    linear-gradient(180deg, rgba(8, 10, 13, 0.4), rgba(8, 10, 13, 0.78));
-}
-
-.forge-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(transparent, #000 20%, #000 80%, transparent);
-}
-
-.forge-rivet {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  border: 2px solid #4f555d;
-  background: linear-gradient(180deg, #222830, #14181f);
-  box-shadow: 0 0 0 2px #0b0d11;
-}
-
-.forge-rivet-a {
-  top: 14px;
-  right: 12px;
-}
-
-.forge-rivet-b {
-  bottom: 10px;
-  left: 14px;
-}
-
-.forge-rivet-c {
-  bottom: 12px;
-  right: 20px;
-}
-
-.brutal-block {
-  border: 3px solid #242a31;
-  border-radius: 0;
-  box-shadow: 6px 6px 0 #0a0c10;
-}
-
-.prose :deep(.plugin-accent) {
-  position: relative;
-  padding-left: 0.8rem;
-  color: #ffd166;
-}
-
-.prose :deep(.plugin-accent)::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.1em;
-  bottom: 0.1em;
-  width: 0.3rem;
-  background: linear-gradient(180deg, #ff7b00, #ffd166);
-}
-
-.prose :deep(.plugin-frame) {
-  box-shadow: 0 0 0 2px #ff7b00;
-}
-
-.prose :deep(.forge-fade-enter-active) {
-  transition: opacity 500ms ease;
-}
-
-.prose :deep(.forge-fade-enter-from) {
-  opacity: 0;
-}
-
-.prose :deep(.forge-fade-enter-to) {
-  opacity: 1;
-}
-
-.header {
+.topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  background:
-    linear-gradient(135deg, rgba(183, 25, 25, 0.24), rgba(18, 20, 27, 0.95) 44%),
-    repeating-linear-gradient(
-      -45deg,
-      rgba(255, 255, 255, 0.03),
-      rgba(255, 255, 255, 0.03) 8px,
-      transparent 8px,
-      transparent 16px
-    );
-  padding: 14px 16px 12px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.arc-reactor {
-  width: 46px;
-  height: 46px;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.arc-shell {
-  position: absolute;
-  inset: 0;
-  border-radius: 999px;
-  border: 3px solid #505963;
-  background: radial-gradient(circle, #0e1116 20%, #0a0c11 100%);
-}
-
-.arc-ring {
-  position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  border: 2px solid rgba(125, 211, 252, 0.7);
-  box-shadow: 0 0 16px rgba(125, 211, 252, 0.35);
-}
-
-.arc-core {
-  position: absolute;
-  inset: 14px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #ecfeff 0%, var(--arc-hi) 45%, rgba(14, 165, 233, 0.35) 100%);
-  animation: corePulse 2s ease-in-out infinite;
-}
-
-@keyframes corePulse {
-  0%,
-  100% {
-    box-shadow: 0 0 8px rgba(125, 211, 252, 0.45);
-  }
-  50% {
-    box-shadow: 0 0 16px rgba(125, 211, 252, 0.72);
-  }
-}
-
-.title {
-  margin: 0;
-  font-size: clamp(1.2rem, 1.3vw + 0.8rem, 1.75rem);
-  font-family: 'Bebas Neue', 'Rajdhani', Impact, sans-serif;
-  font-weight: 700;
-  color: #ff5f5f;
-  letter-spacing: 0.07em;
-  line-height: 1.15;
-}
-
-.title span {
-  color: #ffd45b;
-  font-weight: 600;
-}
-
-.panel-kicker {
-  margin: 0;
-  color: #88d9ff;
-  font-size: 0.72rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-}
-
-.subtitle {
-  margin: 3px 0 0;
-  color: #d1c3b8;
-  font-size: 0.86rem;
-  text-transform: lowercase;
-}
-
-.header-badge {
-  color: #ecf9ff;
-  border: 2px solid #78d3ff;
-  background: #0e3651;
-  padding: 6px 12px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  white-space: nowrap;
-  text-transform: uppercase;
-  box-shadow: 3px 3px 0 #081722;
-}
-
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  background: linear-gradient(180deg, #12151b, #0c0f14);
-  padding: 10px 12px;
-}
-
-.control-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.group-divider {
-  width: 2px;
-  height: 22px;
-  background: #313944;
-}
-
-.control-checks {
-  gap: 12px;
-}
-
-.check {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #dfd4cb;
-  font-size: 0.88rem;
-  user-select: none;
-}
-
-.check input {
-  margin: 0;
-  accent-color: var(--arc);
-}
-
-.btn {
-  height: 38px;
-  border-radius: 0;
-  border: 2px solid #2f3843;
-  background: linear-gradient(180deg, #222a34, #151a22);
-  color: #f2ebe4;
-  padding: 0 13px;
-  font-size: 0.86rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  box-shadow: 3px 3px 0 #0a0c11;
-  transition: transform 0.16s ease;
-}
-
-.btn:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 #0a0c11;
-}
-
-.btn:hover {
-  background: linear-gradient(180deg, #283341, #1a202a);
-}
-
-.btn-primary {
-  border-color: #813239;
-  background: linear-gradient(180deg, #a93334, #7c161f);
-}
-
-.btn-primary.active {
-  background: linear-gradient(180deg, #d33a3f, #981922);
+  gap: 0.55rem;
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  padding: 0.46rem 0.62rem;
   box-shadow:
-    3px 3px 0 #0a0c11,
-    0 0 18px rgba(211, 58, 63, 0.4);
+    inset 0 1px 0 color-mix(in srgb, var(--accent) 18%, transparent),
+    0 12px 32px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
-.preset-select {
-  height: 32px;
-  border-radius: 0;
-  border: 2px solid #2f3843;
-  background: #161c24;
-  color: #f2ebe4;
-  padding: 0 10px;
+.topbar-brand {
+  min-width: 0;
 }
 
-.panels {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  min-height: 0;
-  flex: 1;
+.kicker {
+  margin: 0;
+  font-size: 0.63rem;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  line-height: 1;
 }
 
-.panel {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: linear-gradient(180deg, #11151b, #0d1016);
+h1,
+h2,
+p {
+  margin: 0;
 }
 
-.panel-input {
-  border-color: #49272b;
+h1 {
+  font-size: clamp(0.98rem, 0.82rem + 0.7vw, 1.25rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
 }
 
-.panel-output {
-  border-color: #4b3c22;
-}
-
-.panel-label {
-  height: 40px;
+.topbar-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  background: linear-gradient(90deg, rgba(255, 91, 91, 0.2), rgba(255, 184, 77, 0.12));
-  border-bottom: 2px solid #2a313a;
-}
-
-.label-title {
-  color: #f9f1e9;
-  font-family: 'Bebas Neue', 'Rajdhani', Impact, sans-serif;
-  font-size: 1.05rem;
-  letter-spacing: 0.08em;
-}
-
-.label-meta {
+  justify-content: flex-end;
+  gap: 0.4rem;
+  flex-wrap: wrap;
   margin-left: auto;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.77rem;
-  color: #d8c9bc;
 }
 
-.live-badge {
-  margin-left: 8px;
-  padding: 2px 8px 1px;
-  border: 2px solid #df6b6c;
-  color: #ffd6d6;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  background: rgba(220, 38, 38, 0.24);
+.topbar-actions {
+  display: flex;
+  gap: 0.36rem;
+  flex-wrap: wrap;
+  justify-content: end;
+}
+
+.layout {
+  flex: 1;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 24rem);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.layout.panel-collapsed {
+  grid-template-columns: 1fr;
+}
+
+.workspace-column {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  backdrop-filter: blur(2px);
+  min-height: 0;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--accent) 10%, transparent),
+    0 16px 34px color-mix(in srgb, black 62%, transparent);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--line-soft);
+  padding: 0.65rem 0.85rem;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 0.45rem;
+  color: var(--ink-dim);
+  font-size: 0.75rem;
 }
 
 .editor {
-  min-height: 0;
-  flex: 1;
   width: 100%;
+  flex: 1;
+  min-height: 0;
   border: 0;
-  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0.85rem;
   resize: none;
-  color: #ece3da;
-  background: #0c1016;
-  padding: 14px;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.9rem;
-  line-height: 1.65;
+  line-height: 1.58;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
-.editor::placeholder {
-  color: #6f6963;
+.editor:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }
 
-.editor:disabled {
-  opacity: 0.6;
+.editor-card,
+.output-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .prose {
   min-height: 0;
-  flex: 1;
   overflow: auto;
-  background: #0f141b;
-  padding: 18px 20px 22px;
-  color: #f0e8df;
-  font-size: 0.95rem;
+  padding: 0.9rem 1rem 1.2rem;
+  color: var(--ink);
   line-height: 1.72;
 }
 
 .prose :deep(h1),
 .prose :deep(h2),
 .prose :deep(h3) {
-  margin: 1.15em 0 0.48em;
-  line-height: 1.25;
-  color: var(--gold-hi);
+  color: var(--ink-strong);
+  margin: 1em 0 0.5em;
 }
 
-.prose :deep(h1) {
-  font-size: 1.55rem;
-  border-bottom: 1px solid rgba(252, 211, 77, 0.26);
-  padding-bottom: 0.24em;
-}
-
-.prose :deep(h2) {
-  font-size: 1.22rem;
-}
-
-.prose :deep(h3) {
-  font-size: 1.05rem;
-}
-
-.prose :deep(p) {
-  margin: 0.78em 0;
-  color: #f0e8df;
-}
-
-.prose :deep(strong) {
-  color: #fff9ef;
-}
-
-.prose :deep(em) {
-  color: #d8cec2;
-}
-
-.prose :deep(a) {
-  color: var(--arc-hi);
-  text-underline-offset: 3px;
-}
-
-.prose :deep(code) {
-  background: #151e28;
-  border: 2px solid #2e3d50;
-  border-radius: 0;
-  padding: 1px 6px;
-  color: #ff9999;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 0.86em;
+.prose :deep(blockquote) {
+  border-left: 2px solid var(--accent-soft);
+  margin: 0.9rem 0;
+  padding: 0.15rem 0.8rem;
+  color: var(--ink-muted);
 }
 
 .prose :deep(pre) {
-  background: #090e14;
-  border: 2px solid #3a2f20;
-  border-left: 8px solid var(--gold);
-  border-radius: 0;
-  padding: 14px 16px;
-  overflow: auto;
-}
-
-.prose :deep(pre code) {
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: inherit;
+  border: 1px solid var(--line);
 }
 
 .prose :deep(table) {
   width: 100%;
+  min-width: 32rem;
   border-collapse: collapse;
-  margin: 1em 0;
+  margin: 0.95rem 0;
+}
+
+.prose :deep(thead) {
+  background: color-mix(in srgb, var(--accent-soft) 42%, transparent);
 }
 
 .prose :deep(th),
 .prose :deep(td) {
-  border: 2px solid #29303a;
-  padding: 8px 10px;
-}
-
-.prose :deep(th) {
-  background: rgba(217, 119, 6, 0.2);
-  color: var(--gold-hi);
+  border: 1px solid var(--line);
+  padding: 0.45rem 0.6rem;
   text-align: left;
 }
 
+.prose :deep(th) {
+  color: var(--ink-strong);
+  font-weight: 600;
+}
+
 .prose :deep(td) {
-  color: var(--text-1);
+  color: var(--ink);
 }
 
-.prose :deep(blockquote) {
-  margin: 1em 0;
-  border-left: 6px solid var(--arc);
-  padding: 0.5em 1em;
-  background: rgba(14, 165, 233, 0.15);
-  color: #d2e7f4;
+.prose :deep(tr:nth-child(even) td) {
+  background: color-mix(in srgb, var(--surface-soft) 60%, transparent);
 }
 
-.app > .header,
-.app > .controls,
+.prose :deep(.plugin-accent) {
+  position: relative;
+  padding-left: 0.8rem;
+}
+
+.prose :deep(.plugin-accent)::before {
+  content: 'ᚱ';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent);
+}
+
+.prose :deep(.plugin-quote) {
+  background: color-mix(in srgb, var(--accent-soft) 18%, transparent);
+}
+
+.prose :deep(.sigil-rise-enter-active) {
+  transition:
+    opacity 280ms ease,
+    transform 280ms ease;
+}
+
+.prose :deep(.sigil-rise-enter-from) {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
 .panel {
-  animation: heavyRise 380ms cubic-bezier(0.19, 1, 0.22, 1) both;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.7rem;
 }
 
-.app > .controls {
-  animation-delay: 60ms;
+.toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.26rem;
+  padding: 0.23rem 0.4rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-soft) 85%, transparent);
+  font-size: 0.71rem;
+  color: var(--ink);
 }
 
-.panel-input {
-  animation-delay: 120ms;
+.toggle-chip span {
+  line-height: 1;
 }
 
-.panel-output {
-  animation-delay: 170ms;
+.panel-title {
+  padding: 0.1rem 0.2rem 0.7rem;
+  border-bottom: 1px dashed var(--line-soft);
+  margin-bottom: 0.35rem;
 }
 
-@keyframes heavyRise {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(0.99);
-    filter: saturate(0.7);
+.panel-title p {
+  color: var(--ink-dim);
+  font-size: 0.82rem;
+}
+
+.section {
+  border-bottom: 1px solid var(--line-soft);
+  padding: 0.38rem 0;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink-strong);
+  letter-spacing: 0.02em;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  font-size: 0.84rem;
+}
+
+input,
+select,
+textarea {
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+  padding: 0.4rem 0.5rem;
+}
+
+input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.json {
+  width: 100%;
+  margin-top: 0.45rem;
+  min-height: 5.5rem;
+  resize: vertical;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.78rem;
+}
+
+.action,
+.ghost {
+  border: 1px solid var(--line);
+  padding: 0.28rem 0.46rem;
+  font-size: 0.7rem;
+  color: var(--ink);
+  background: var(--surface-soft);
+  cursor: pointer;
+}
+
+.action.active {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.warnings {
+  border: 1px solid color-mix(in srgb, var(--danger) 50%, var(--line));
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  padding: 0.7rem 0.85rem;
+}
+
+.warnings p {
+  margin-bottom: 0.45rem;
+}
+
+.warnings ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.25rem;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .layout {
+    grid-template-columns: 1fr;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: saturate(1);
-  }
-}
 
-.prose :deep(.fade-enter-active) {
-  transition: opacity 0.35s ease;
-}
-
-.prose :deep(.fade-enter-from) {
-  opacity: 0;
-}
-
-.prose :deep(.slide-up-enter-active) {
-  transition:
-    opacity 0.35s ease,
-    transform 0.35s ease;
-}
-
-.prose :deep(.slide-up-enter-from) {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.prose :deep(.pop-enter-active) {
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.prose :deep(.pop-enter-from) {
-  opacity: 0;
-  transform: scale(0.92);
-}
-
-@media (max-width: 980px) {
-  .app {
-    height: auto;
-    min-height: 100vh;
-    padding: 12px;
-  }
-
-  .header {
-    gap: 8px;
-    align-items: flex-start;
-  }
-
-  .header-badge {
-    align-self: center;
-  }
-
-  .controls {
-    gap: 8px;
-  }
-
-  .group-divider {
-    display: none;
-  }
-
-  .panels {
+  .workspace-column {
     grid-template-columns: 1fr;
   }
 
   .panel {
-    min-height: 360px;
+    height: auto;
+    max-height: 42vh;
   }
 }
 
-@media (max-width: 640px) {
-  .header {
+@media (max-width: 720px) {
+  .topbar {
+    align-items: start;
     flex-direction: column;
-    align-items: flex-start;
   }
 
-  .header-badge {
-    margin-left: 60px;
-  }
-
-  .control-group {
+  .topbar-controls {
     width: 100%;
-    flex-wrap: wrap;
+    justify-content: start;
+    margin-left: 0;
   }
 
-  .brutal-block {
-    box-shadow: 4px 4px 0 #0a0c10;
+  .topbar-actions {
+    justify-content: start;
+  }
+
+  .field {
+    grid-template-columns: 1fr;
   }
 }
 </style>

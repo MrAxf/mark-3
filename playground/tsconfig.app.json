@@ -5,11 +5,6 @@
     "types": [
       "vite/client"
     ],
-    "paths": {
-      "@mark-sorcery/vue": [
-        "../packages/vue/index.ts"
-      ]
-    },
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
