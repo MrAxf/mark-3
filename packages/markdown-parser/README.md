@@ -18,20 +18,22 @@ El parser usa una API en dos pasos:
 El pipeline fijo del processor siempre contiene, en este orden:
 
 1. `remarkParse`
-2. plugins `remark`
-3. `remarkRehype`
-4. `rehypeRaw`
-5. plugins `rehype`
-6. posprocesos HAST
+2. `remarkGfm` (por defecto, opcional)
+3. plugins `remark`
+4. `remarkRehype`
+5. `rehypeHarden`
+6. `rehypeRaw`
+7. limpieza de nodos `text` whitespace-only (por defecto, opcional)
+8. plugins `rehype`
+9. `rehypeSanitize` (por defecto, opcional)
 
-Los preprocesos de texto se ejecutan antes de `remarkParse`.
-plugins: [createCorePlugin({ normalizer: true })],
+Los preprocesos de texto son opcionales y se ejecutan antes de `remarkParse`.
 
 ```ts
-import { createCorePlugin, createProcessor, parse } from '@mark-sorcery/markdown-parser'
+import { createProcessor, parse } from '@mark-sorcery/markdown-parser'
 
 const processor = createProcessor({
-  plugins: [createCorePlugin()],
+  preprocess: true,
 })
 
 const root = parse(processor, '# Hello')
@@ -73,49 +75,25 @@ Cuando usas streaming, el parser sigue aplicando los preprocessors al parseo de 
 
 Si el markdown nuevo ya no empieza por `previousMarkdown`, el parser resetea `memory` y trata esa llamada como el inicio de un stream nuevo.
 
-## Plugin interno
+## Opciones core
 
-El paquete expone `createCorePlugin()`, que reproduce el comportamiento base del parser:
+`createProcessor(...)` ya incluye el pipeline base por defecto. Puedes ajustarlo con estas opciones:
 
-- preproceso con `remend`
-- plugin `remark-gfm`
-- plugin `rehype-sanitize`
-
-```ts
-import { createCorePlugin, createProcessor, parse } from "@mark-sorcery/markdown-parser";
-      normalizer: true,
-
-const processor = createProcessor({
-  plugins: [
-    createCorePlugin({
-      remend: true,
-      gfm: true,
-      sanitize: false,
-    }),
-  ],
-});
-
-const root = parse(processor, "**incomplete");
-```
+- `gfm`: `false` para desactivar GFM o un objeto de opciones de `remark-gfm`.
+- `sanitize`: `false` para desactivar sanitizado o un schema custom de `rehype-sanitize`.
+- `remarkHardenOptions`: opciones de seguridad para links/imagenes.
+- `removeBlankTextNodes`: `false` para preservar nodos `text` de whitespace entre bloques.
 
 ## Plugins personalizados
 
 ```ts
-import { createCorePlugin, createProcessor, parse } from '@mark-sorcery/markdown-parser'
+import { createProcessor, parse } from '@mark-sorcery/markdown-parser'
 
 const processor = createProcessor({
   plugins: [
-    createCorePlugin(),
     {
-      preprocess: (markdown) => `# ${markdown}`,
-      postprocess: (tree) => {
-        const heading = tree.children[0]
-        if (heading?.type === 'element' && heading.tagName === 'h1') {
-          heading.tagName = 'h2'
-        }
-
-        return tree
-      },
+      remark: [myRemarkPlugin],
+      rehype: [[myRehypePlugin, { option: true }]],
     },
   ],
 })
@@ -123,12 +101,18 @@ const processor = createProcessor({
 const root = parse(processor, 'hello')
 ```
 
-Un plugin también puede inyectar plugins de `unified` por fase:
+Los plugins personalizados pueden inyectar plugins de `unified` por fase:
 
 ```ts
 import { createProcessor, parse } from '@mark-sorcery/markdown-parser'
 
 const processor = createProcessor({
+  preprocess: {
+    remend: { bold: false },
+    normalizer: {
+      maxConsecutiveBlankLines: 2,
+    },
+  },
   plugins: [
     {
       remark: [myRemarkPlugin],
@@ -158,21 +142,47 @@ Con `memory`, espera recibir el markdown acumulado completo, devuelve siempre el
 
 Devuelve un objeto de memoria vacío tipado para reutilizarlo entre llamadas de streaming.
 
-### `createCorePlugin(options?)`
+### `preprocess` en `createProcessor(options)`
 
-Devuelve un preset con `remend`, `remark-gfm` y `rehype-sanitize`.
+El preprocesado se configura en `ParseOptions.preprocess`:
+
+- `false`: desactiva todo el preprocesado.
+- `true`: activa `normalizer` y `remend` con defaults.
+- objeto: permite personalizar `normalizer` y/o `remend`.
+
+Ejemplo:
+
+```ts
+const processor = createProcessor({
+  preprocess: {
+    normalizer: {
+      tabWidth: 2,
+      maxConsecutiveBlankLines: 1,
+    },
+    remend: true,
+  },
+})
+```
+
+### Otras opciones importantes
+
+- `gfm`: activa/desactiva o configura `remark-gfm`.
+- `sanitize`: activa/desactiva o configura `rehype-sanitize`.
+- `remarkHardenOptions`: configura `rehype-harden`.
+- `removeBlankTextNodes`: controla la limpieza de nodos `text` whitespace-only en HAST.
 
 ## Scripts
 
 ```bash
 bun run benchmark
 bun run test
+bun run test:coverage
 bun run build
 ```
 
 ## Benchmark
 
-El paquete incluye un benchmark ejecutable que mide `parse(processor, markdown)` reutilizando un mismo processor con `createCorePlugin()` y una carga sintética representativa.
+El paquete incluye un benchmark ejecutable que mide `parse(processor, markdown)` reutilizando un mismo processor con opciones core y una carga sintética representativa.
 
 ```bash
 bun run benchmark
