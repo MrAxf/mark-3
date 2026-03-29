@@ -93,9 +93,7 @@ function runParse(processor: MarkdownProcessor, markdown: string): Root {
 
   input = processor.preprocess(input)
 
-  let root = processor.processor.runSync(processor.processor.parse(input), input) as Root
-
-  root = processor.postprocess(root)
+  const root = processor.processor.runSync(processor.processor.parse(input), input) as Root
 
   return root
 }

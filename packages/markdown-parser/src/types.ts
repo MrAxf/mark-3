@@ -3,28 +3,31 @@ import type { Options as SanitizeSchema } from 'rehype-sanitize'
 import type { Options as RemarkGfmOptions } from 'remark-gfm'
 import type { Options as RemarkRehypeOptions } from 'remark-rehype'
 import type { RemendOptions } from 'remend'
+import type { Processor } from 'unified'
 
 import { harden } from 'rehype-harden'
-import type { Processor } from 'unified'
 
 export type { Root, RemendOptions }
 export type { RemarkGfmOptions, SanitizeSchema }
 
 export type MarkdownPreprocessor = (markdown: string) => string
-export type HastPostprocessor = (root: Root) => Root
 export type UnifiedPluginFactory = (...args: any[]) => unknown
 export type UnifiedPluginEntry = UnifiedPluginFactory | [UnifiedPluginFactory, ...unknown[]]
 
 export interface ParserPlugin {
-  preprocess?: MarkdownPreprocessor | MarkdownPreprocessor[]
   remark?: UnifiedPluginEntry[]
   rehype?: UnifiedPluginEntry[]
-  postprocess?: HastPostprocessor | HastPostprocessor[]
 }
 
 export type RemarkHardenOptions = Parameters<typeof harden>[0]
 
 export interface ParseOptions {
+  /**
+   * Text preprocessors executed before parsing markdown.
+   * Pass `false` to disable all preprocessors.
+   * @default false
+   */
+  preprocess?: boolean | PreprocessOptions
   /**
    * Plugins used when building a processor with `createProcessor(...)`.
    * The fixed pipeline always includes `remark-parse`, `remark-rehype` and `rehype-raw`.
@@ -35,18 +38,9 @@ export interface ParseOptions {
    */
   remarkRehypeOptions?: RemarkRehypeOptions
   /**
-   * Extra options for the core plugin's remend completion feature.
+   * Extra options for the rehype-harden step.
    */
   remarkHardenOptions?: RemarkHardenOptions
-}
-
-export interface CorePluginOptions {
-  /**
-   * Pass `false` to disable remend completion of incomplete markdown.
-   * Pass a `RemendOptions` object to configure which completions are active.
-   * @default true
-   */
-  remend?: boolean | RemendOptions
   /**
    * Pass `false` to disable GitHub Flavored Markdown.
    * Pass a `RemarkGfmOptions` object to configure the plugin.
@@ -60,11 +54,11 @@ export interface CorePluginOptions {
    */
   sanitize?: false | SanitizeSchema
   /**
-   * Pass `false` to disable markdown normalization before parsing.
-   * Pass a `NormalizerOptions` object to configure normalization rules.
+   * Remove whitespace-only HAST text nodes generated between block elements.
+   * Pass `false` to preserve those nodes.
    * @default true
    */
-  normalizer?: boolean | NormalizerOptions
+  removeBlankTextNodes?: false
 }
 
 export type AnyProcessor = Processor<any, any, any, any, any>
@@ -78,10 +72,6 @@ export interface MarkdownProcessor {
    * Applies every configured markdown preprocessor in declaration order.
    */
   preprocess: (markdown: string) => string
-  /**
-   * Applies every configured HAST postprocessor in declaration order.
-   */
-  postprocess: (root: Root) => Root
 }
 
 export interface ParseMemory {
@@ -129,4 +119,19 @@ export interface NormalizerOptions {
    * @default 1
    */
   maxConsecutiveBlankLines?: number | false
+}
+
+export interface PreprocessOptions {
+  /**
+   * Pass `false` to disable remend completion of incomplete markdown.
+   * Pass a `RemendOptions` object to configure which completions are active.
+   * @default true
+   */
+  remend?: boolean | RemendOptions
+  /**
+   * Pass `false` to disable markdown normalization before parsing.
+   * Pass a `NormalizerOptions` object to configure normalization rules.
+   * @default true
+   */
+  normalizer?: boolean | NormalizerOptions
 }

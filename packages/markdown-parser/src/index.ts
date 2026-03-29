@@ -1,10 +1,8 @@
 export { createMemory, parse } from '@/parse.ts'
 export { createProcessor } from '@/pipeline.ts'
-export { createCorePlugin } from '@/plugins.ts'
 export type {
-  CorePluginOptions,
-  HastPostprocessor,
   MarkdownPreprocessor,
+  PreprocessOptions,
   ParseOptions,
   ParseMemory,
   ParserPlugin,
@@ -14,5 +12,5 @@ export type {
   SanitizeSchema,
   UnifiedPluginEntry,
   MarkdownProcessor,
+  NormalizerOptions,
 } from './types.ts'
-export type { NormalizerOptions } from './types.ts'
