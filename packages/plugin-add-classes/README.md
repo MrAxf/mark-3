@@ -36,7 +36,7 @@ const processor = createProcessor({
   ],
 })
 
-const root = parse(processor, '# Hello\n\nParagraph')
+const root = await parse(processor, '# Hello\n\nParagraph')
 ```
 
 ## API

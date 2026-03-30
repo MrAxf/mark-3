@@ -1,4 +1,7 @@
-import type { ParserPlugin } from '@mark-sorcery/markdown-parser'
+import {
+  createMarkSorceryRehypePlugin,
+  type ParserPlugin,
+} from '@mark-sorcery/markdown-parser'
 import type { Element, Properties, Root } from 'hast'
 
 import { visit } from 'unist-util-visit'
@@ -60,7 +63,5 @@ export function rehypeAddClasses(options: AddClassesOptions = {}): (tree: Root) 
 }
 
 export function createAddClassesPlugin(options: AddClassesOptions = {}): ParserPlugin {
-  return {
-    rehype: [[rehypeAddClasses, options]],
-  }
+  return createMarkSorceryRehypePlugin([rehypeAddClasses, options])
 }

@@ -1,6 +1,6 @@
 {
   "name": "@mark-sorcery/plugin-add-classes",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Rehype plugin preset for Mark Sorcery that adds CSS classes to elements based on the options provided.",
   "license": "MIT",
   "files": [
@@ -38,7 +38,7 @@
     "tsdown": "0.21.7"
   },
   "peerDependencies": {
-    "@mark-sorcery/markdown-parser": "workspace:*",
+    "@mark-sorcery/markdown-parser": "^0.6.0",
     "typescript": "^5"
   }
 }

@@ -5,8 +5,8 @@ import { describe, expect, it } from 'vitest'
 
 import { createAddClassesPlugin, rehypeAddClasses } from '@/index.ts'
 
-function parseMarkdown(markdown: string, plugins = [createAddClassesPlugin()]): Root {
-  // parser v0.5 enables sanitize by default; disable it in these tests so className can be asserted.
+function parseMarkdown(markdown: string, plugins = [createAddClassesPlugin()]): Promise<Root> {
+  // Parser enables sanitize by default; disable it in tests so className can be asserted.
   return parse(createProcessor({ plugins, sanitize: false }), markdown)
 }
 
@@ -55,8 +55,8 @@ function getClassNames(node?: Element): string[] {
 }
 
 describe('createAddClassesPlugin', () => {
-  it('adds classes to configured markdown elements', () => {
-    const result = parseMarkdown('# Title\n\nParagraph', [
+  it('adds classes to configured markdown elements', async () => {
+    const result = await parseMarkdown('# Title\n\nParagraph', [
       createAddClassesPlugin({
         elements: {
           h1: 'heading heading-xl',
@@ -69,8 +69,8 @@ describe('createAddClassesPlugin', () => {
     expect(getClassNames(findElement(result, 'p'))).toEqual(['copy', 'copy-body'])
   })
 
-  it('merges classes with existing className values', () => {
-    const result = parseMarkdown('<p class="existing">Hello</p>', [
+  it('merges classes with existing className values', async () => {
+    const result = await parseMarkdown('<p class="existing">Hello</p>', [
       createAddClassesPlugin({
         elements: {
           p: ['existing', 'copy'],
@@ -81,8 +81,8 @@ describe('createAddClassesPlugin', () => {
     expect(getClassNames(findElement(result, 'p'))).toEqual(['existing', 'copy'])
   })
 
-  it('does nothing for tags that are not configured', () => {
-    const result = parseMarkdown('Paragraph', [
+  it('does nothing for tags that are not configured', async () => {
+    const result = await parseMarkdown('Paragraph', [
       createAddClassesPlugin({
         elements: {
           h1: 'heading',
@@ -95,8 +95,8 @@ describe('createAddClassesPlugin', () => {
 })
 
 describe('rehypeAddClasses', () => {
-  it('can be used directly as a rehype plugin entry', () => {
-    const result = parse(
+  it('can be used directly as a rehype plugin entry', async () => {
+    const result = await parse(
       createProcessor({
         sanitize: false,
         plugins: [
@@ -111,7 +111,7 @@ describe('rehypeAddClasses', () => {
     expect(getClassNames(findElement(result, 'strong'))).toEqual(['font-semibold'])
   })
 
-  it('merges when existing className is a string property', () => {
+  it('merges when existing className is a string property', async () => {
     const setStringClassName = () => (tree: Root) => {
       const paragraph = findElement(tree, 'p')
 
@@ -125,7 +125,7 @@ describe('rehypeAddClasses', () => {
       }
     }
 
-    const result = parse(
+    const result = await parse(
       createProcessor({
         sanitize: false,
         plugins: [
@@ -140,7 +140,7 @@ describe('rehypeAddClasses', () => {
     expect(getClassNames(findElement(result, 'p'))).toEqual(['existing-string', 'copy'])
   })
 
-  it('merges when existing className is an array property', () => {
+  it('merges when existing className is an array property', async () => {
     const setArrayClassName = () => (tree: Root) => {
       const paragraph = findElement(tree, 'p')
 
@@ -154,7 +154,7 @@ describe('rehypeAddClasses', () => {
       }
     }
 
-    const result = parse(
+    const result = await parse(
       createProcessor({
         sanitize: false,
         plugins: [
