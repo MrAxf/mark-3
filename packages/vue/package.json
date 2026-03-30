@@ -1,6 +1,6 @@
 {
   "name": "@mark-sorcery/vue",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Vue renderer for Mark Sorcery markdown.",
   "license": "MIT",
   "files": [
@@ -28,7 +28,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@mark-sorcery/markdown-parser": "0.5.0"
+    "@mark-sorcery/markdown-parser": "0.6.0"
   },
   "devDependencies": {
     "@tsconfig/node24": "24.0.4",

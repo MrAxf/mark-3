@@ -1,10 +1,18 @@
 import { createMemory, createProcessor, parse } from '@mark-sorcery/markdown-parser'
+import type { Root } from 'hast'
 import { computed, defineComponent, h, shallowRef, watchEffect } from 'vue'
 
 import type { MarkdownProcessor, MarkdownProps, ParseMemory } from './types.ts'
 
 import NodeList from './components/NodeList.vue'
 import { useProvideMarkdown } from './composables/markdown.ts'
+
+function createEmptyRoot(): Root {
+  return {
+    type: 'root',
+    children: [],
+  }
+}
 
 export const Markdown = defineComponent({
   name: 'Markdown',
@@ -51,11 +59,19 @@ export const Markdown = defineComponent({
       })
     })
 
-    const hast = shallowRef(parse(processor.value, getMarkdown()))
+    const hast = shallowRef<Root>(createEmptyRoot())
     let streamMemory: ParseMemory | undefined
     let activeProcessor: MarkdownProcessor | undefined
+    let parseRunId = 0
 
-    watchEffect(() => {
+    watchEffect((onCleanup) => {
+      const runId = ++parseRunId
+      let isActive = true
+
+      onCleanup(() => {
+        isActive = false
+      })
+
       const currentProcessor = processor.value
       const markdown = getMarkdown()
 
@@ -65,19 +81,29 @@ export const Markdown = defineComponent({
 
       activeProcessor = currentProcessor
 
-      if (props.stream) {
-        streamMemory ??= createMemory()
-        hast.value = parse(currentProcessor, markdown, streamMemory)
-        return
-      }
+      void (async () => {
+        const nextRoot = await (() => {
+          if (props.stream) {
+            streamMemory ??= createMemory()
+            return parse(currentProcessor, markdown, streamMemory)
+          }
 
-      if (streamMemory) {
-        streamMemory.flush = true
-        streamMemory = undefined
-        return
-      }
+          if (streamMemory) {
+            streamMemory.flush = true
+            const flushedMemory = streamMemory
+            streamMemory = undefined
+            return parse(currentProcessor, markdown, flushedMemory)
+          }
 
-      hast.value = parse(currentProcessor, markdown)
+          return parse(currentProcessor, markdown)
+        })()
+
+        if (!isActive || runId !== parseRunId) {
+          return
+        }
+
+        hast.value = nextRoot
+      })()
     })
 
     const { components: providedComponents, transition: providedTransition } = useProvideMarkdown(
