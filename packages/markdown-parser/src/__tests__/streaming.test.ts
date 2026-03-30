@@ -7,45 +7,45 @@ import { createMemory, createProcessor, parse } from '@/index.ts'
 import { findNode, textContent } from './helpers.ts'
 
 describe('streaming memory', () => {
-  it('returns the full tree built so far while the stream grows', () => {
+  it('returns the full tree built so far while the stream grows', async () => {
     const processor = createProcessor({
       preprocess: true,
     })
     const memory = createMemory()
 
-    const block1 = parse(processor, '**hola', memory)
+    const block1 = await parse(processor, '**hola', memory)
     expect(findNode(block1, 'strong')).toBeDefined()
     expect(textContent(block1)).toContain('hola')
 
-    const block2 = parse(processor, '**hola que tal**\nhoy', memory)
+    const block2 = await parse(processor, '**hola que tal**\nhoy', memory)
     expect(findNode(block2, 'strong')).toBeDefined()
     expect(textContent(block2)).toContain('hola que tal')
     expect(textContent(block2)).toContain('hoy')
 
-    const block3 = parse(processor, '**hola que tal**\nhoy estas muy\nbirn', memory)
+    const block3 = await parse(processor, '**hola que tal**\nhoy estas muy\nbirn', memory)
     expect(findNode(block3, 'strong')).toBeDefined()
     expect(textContent(block3)).toContain('hoy estas muy')
     expect(textContent(block3)).toContain('birn')
 
-    const block4 = parse(processor, 'buenas', memory)
+    const block4 = await parse(processor, 'buenas', memory)
     expect(findNode(block4, 'strong')).toBeUndefined()
     expect(textContent(block4)).toContain('buenas')
     expect(textContent(block4)).not.toContain('hola que tal')
   })
 
-  it('keeps confirmed blocks cached while remend still applies to the pending block', () => {
+  it('keeps confirmed blocks cached while remend still applies to the pending block', async () => {
     const processor = createProcessor({
       preprocess: true,
     })
     const memory: ParseMemory = createMemory()
 
-    const first = parse(processor, '# Titulo\n\n**hola', memory)
+    const first = await parse(processor, '# Titulo\n\n**hola', memory)
     expect(findNode(first, 'h1')).toBeDefined()
     expect(findNode(first, 'strong')).toBeDefined()
     expect(memory.confirmedMarkdown).toBe('# Titulo')
     expect(memory.pendingMarkdown).toBe('\n\n**hola')
 
-    const second = parse(processor, '# Titulo\n\n**hola\n\n- item', memory)
+    const second = await parse(processor, '# Titulo\n\n**hola\n\n- item', memory)
     expect(findNode(second, 'h1')).toBeDefined()
     expect(findNode(second, 'strong')).toBeDefined()
     expect(findNode(second, 'ul')).toBeDefined()
@@ -53,17 +53,17 @@ describe('streaming memory', () => {
     expect(memory.pendingMarkdown).toBe('\n\n- item')
   })
 
-  it('supports flush to promote the pending block into the confirmed prefix', () => {
+  it('supports flush to promote the pending block into the confirmed prefix', async () => {
     const processor = createProcessor({
       preprocess: true,
     })
     const memory = createMemory()
 
-    parse(processor, '**hola', memory)
+    await parse(processor, '**hola', memory)
     expect(memory.pendingMarkdown).toBe('**hola')
 
     memory.flush = true
-    const flushed = parse(processor, '**hola', memory)
+    const flushed = await parse(processor, '**hola', memory)
 
     expect(findNode(flushed, 'strong')).toBeDefined()
     expect(memory.confirmedMarkdown).toBe('**hola')

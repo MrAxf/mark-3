@@ -26,24 +26,24 @@ function collectBlankTextNodes(root: Root): RootContent[] {
 }
 
 describe('hast whitespace nodes', () => {
-  it('removes whitespace-only text nodes by default', () => {
-    const result = parseMarkdown('# Title\n\nParagraph')
+  it('removes whitespace-only text nodes by default', async () => {
+    const result = await parseMarkdown('# Title\n\nParagraph')
 
     expect(findNode(result, 'h1')).toBeDefined()
     expect(findNode(result, 'p')).toBeDefined()
     expect(collectBlankTextNodes(result)).toHaveLength(0)
   })
 
-  it('preserves whitespace-only text nodes when removeBlankTextNodes is false', () => {
-    const result = parseMarkdown('# Title\n\nParagraph', {
+  it('preserves whitespace-only text nodes when removeBlankTextNodes is false', async () => {
+    const result = await parseMarkdown('# Title\n\nParagraph', {
       removeBlankTextNodes: false,
     })
 
     expect(collectBlankTextNodes(result).length).toBeGreaterThan(0)
   })
 
-  it('does not strip blank text nodes inside pre', () => {
-    const result = parseMarkdown('<pre>\n\n</pre>\n\nAfter')
+  it('does not strip blank text nodes inside pre', async () => {
+    const result = await parseMarkdown('<pre>\n\n</pre>\n\nAfter')
     const pre = findNode(result, 'pre')
 
     expect(pre).toBeDefined()

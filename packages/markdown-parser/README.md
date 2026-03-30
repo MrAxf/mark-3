@@ -36,7 +36,7 @@ const processor = createProcessor({
   preprocess: true,
 })
 
-const root = parse(processor, '# Hello')
+const root = await parse(processor, '# Hello')
 ```
 
 La salida siempre es un árbol HAST `Root`.
@@ -53,13 +53,13 @@ import { createMemory, createProcessor, parse } from '@mark-sorcery/markdown-par
 const processor = createProcessor()
 const memory = createMemory()
 
-const block1 = parse(processor, '**hola', memory)
-const block2 = parse(processor, '**hola que tal**\nhoy', memory)
-const block3 = parse(processor, '**hola que tal**\nhoy estas muy\nbirn', memory)
+const block1 = await parse(processor, '**hola', memory)
+const block2 = await parse(processor, '**hola que tal**\nhoy', memory)
+const block3 = await parse(processor, '**hola que tal**\nhoy estas muy\nbirn', memory)
 // block1, block2 y block3 contienen siempre el árbol completo disponible en ese momento
 
 memory.flush = true
-const flushed = parse(processor, '**hola que tal**\nhoy estas muy\nbirn', memory)
+const flushed = await parse(processor, '**hola que tal**\nhoy estas muy\nbirn', memory)
 // flushed promueve el bloque pendiente al prefijo confirmado para futuras llamadas
 ```
 
@@ -98,7 +98,7 @@ const processor = createProcessor({
   ],
 })
 
-const root = parse(processor, 'hello')
+const root = await parse(processor, 'hello')
 ```
 
 Los plugins personalizados pueden inyectar plugins de `unified` por fase:
@@ -121,7 +121,7 @@ const processor = createProcessor({
   ],
 })
 
-const root = parse(processor, 'content')
+const root = await parse(processor, 'content')
 ```
 
 ## API pública
@@ -132,7 +132,7 @@ Crea un `MarkdownProcessor` reutilizable a partir de `ParseOptions`.
 
 ### `parse(processor, markdown, memory?)`
 
-Ejecuta el parse usando un `MarkdownProcessor` ya construido.
+Ejecuta el parse usando un `MarkdownProcessor` ya construido y retorna una `Promise<Root>`.
 
 Sin `memory`, parsea el string completo como hasta ahora.
 
@@ -182,7 +182,7 @@ bun run build
 
 ## Benchmark
 
-El paquete incluye un benchmark ejecutable que mide `parse(processor, markdown)` reutilizando un mismo processor con opciones core y una carga sintética representativa.
+El paquete incluye un benchmark ejecutable que mide `await parse(processor, markdown)` reutilizando un mismo processor con opciones core y una carga sintética representativa.
 
 ```bash
 bun run benchmark

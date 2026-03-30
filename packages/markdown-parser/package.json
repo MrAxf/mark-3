@@ -1,6 +1,6 @@
 {
   "name": "@mark-sorcery/markdown-parser",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Markdown to HAST parser used by Mark Sorcery.",
   "license": "MIT",
   "files": [

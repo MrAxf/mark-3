@@ -5,7 +5,7 @@ import type { ParseOptions } from '@/index.ts'
 
 import { createProcessor, parse } from '@/index.ts'
 
-export function parseMarkdown(markdown: string, options?: ParseOptions): Root {
+export function parseMarkdown(markdown: string, options?: ParseOptions): Promise<Root> {
   return parse(createProcessor(options), markdown)
 }
 

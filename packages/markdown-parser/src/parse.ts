@@ -84,7 +84,7 @@ function splitStreamingMarkdown(
   }
 }
 
-function runParse(processor: MarkdownProcessor, markdown: string): Root {
+async function runParse(processor: MarkdownProcessor, markdown: string): Promise<Root> {
   if (markdown.length === 0) {
     return createEmptyRoot()
   }
@@ -93,12 +93,16 @@ function runParse(processor: MarkdownProcessor, markdown: string): Root {
 
   input = processor.preprocess(input)
 
-  const root = processor.processor.runSync(processor.processor.parse(input), input) as Root
+  const root = (await processor.processor.run(processor.processor.parse(input), input)) as Root
 
   return root
 }
 
-export function parse(processor: MarkdownProcessor, markdown: string, memory?: ParseMemory): Root {
+export async function parse(
+  processor: MarkdownProcessor,
+  markdown: string,
+  memory?: ParseMemory,
+): Promise<Root> {
   if (!memory) {
     return runParse(processor, markdown)
   }
@@ -116,8 +120,8 @@ export function parse(processor: MarkdownProcessor, markdown: string, memory?: P
   const confirmedRoot =
     memory.previousConfirmedRoot && confirmedFragment === confirmedMarkdown
       ? memory.previousConfirmedRoot
-      : runParse(processor, confirmedFragment)
-  const pendingRoot = runParse(processor, pendingFragment)
+      : await runParse(processor, confirmedFragment)
+  const pendingRoot = await runParse(processor, pendingFragment)
   const root = combineRoots(confirmedRoot, pendingRoot)
 
   memory.previousMarkdown = markdown

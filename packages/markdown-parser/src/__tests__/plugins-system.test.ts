@@ -9,10 +9,10 @@ import {
 } from './helpers.ts'
 
 describe('plugin system', () => {
-  it('runs remark plugins and rehype plugins in order', () => {
+  it('runs remark plugins and rehype plugins in order', async () => {
     const trace: string[] = []
 
-    const result = parseMarkdown('# hello', {
+    const result = await parseMarkdown('# hello', {
       plugins: [
         {
           remark: [
@@ -56,8 +56,8 @@ describe('plugin system', () => {
     expect(textContent(result)).toContain('hello')
   })
 
-  it('always keeps the fixed parse pipeline around custom plugins', () => {
-    const result = parseMarkdown('Hello <b>world</b>', {
+  it('always keeps the fixed parse pipeline around custom plugins', async () => {
+    const result = await parseMarkdown('Hello <b>world</b>', {
       plugins: [
         {
           remark: [promoteHeadingPlugin],
@@ -72,9 +72,9 @@ describe('plugin system', () => {
     expect(bold).toBeDefined()
   })
 
-  it('accepts a remark-only plugin (no rehype side)', () => {
+  it('accepts a remark-only plugin (no rehype side)', async () => {
     // Ensures the rehype ?? [] fallback path in getRehypePlugins is exercised
-    const result = parseMarkdown('# heading', {
+    const result = await parseMarkdown('# heading', {
       plugins: [{ remark: [promoteHeadingPlugin] }],
     })
 
@@ -82,9 +82,9 @@ describe('plugin system', () => {
     expect(findNode(result, 'h2')).toBeDefined()
   })
 
-  it('accepts a rehype-only plugin (no remark side)', () => {
+  it('accepts a rehype-only plugin (no remark side)', async () => {
     // Ensures the remark ?? [] fallback path in getRemarkPlugins is exercised
-    const result = parseMarkdown('Hello <b>world</b>', {
+    const result = await parseMarkdown('Hello <b>world</b>', {
       plugins: [{ rehype: [promoteElementPlugin] }],
     })
 
