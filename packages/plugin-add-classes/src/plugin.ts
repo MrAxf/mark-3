@@ -1,9 +1,6 @@
-import {
-  createMarkSorceryRehypePlugin,
-  type ParserPlugin,
-} from '@mark-sorcery/markdown-parser'
 import type { Element, Properties, Root } from 'hast'
 
+import { createMarkSorceryRehypePlugin, type ParserPlugin } from '@mark-sorcery/markdown-parser'
 import { visit } from 'unist-util-visit'
 
 export type ClassNameValue = string | string[]

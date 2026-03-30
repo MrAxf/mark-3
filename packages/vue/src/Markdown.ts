@@ -1,5 +1,6 @@
-import { createMemory, createProcessor, parse } from '@mark-sorcery/markdown-parser'
 import type { Root } from 'hast'
+
+import { createMemory, createProcessor, parse } from '@mark-sorcery/markdown-parser'
 import { computed, defineComponent, h, shallowRef, watchEffect } from 'vue'
 
 import type { MarkdownProcessor, MarkdownProps, ParseMemory } from './types.ts'
