@@ -1,0 +1,19 @@
+{
+    "include": [
+        "tsdown.config.*",
+        "vitest.config.*"
+    ],
+    "compilerOptions": {
+        "target": "ES2022",
+        "lib": [
+            "ES2023"
+        ],
+        "module": "preserve",
+        "moduleResolution": "bundler",
+        "types": [
+            "node"
+        ],
+        "noEmit": true,
+        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo"
+    }
+}
