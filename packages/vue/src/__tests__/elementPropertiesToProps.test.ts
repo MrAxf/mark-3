@@ -1,8 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import Link from '@/components/elements/Link.vue'
-import TaskListInput from '@/components/elements/TaskListInput.vue'
+import GenericElement from '@/components/elements/GenericElement.vue'
 import { elementPropertiesToProps } from '@/utils/elementPropertiesToProps.ts'
 
 import { element, NodeListHarness, text } from './test-helpers.ts'
@@ -49,8 +48,8 @@ describe('elementPropertiesToProps', () => {
           }),
         ],
         components: {
-          a: Link,
-          input: TaskListInput,
+          a: GenericElement,
+          input: GenericElement,
         },
       },
     })

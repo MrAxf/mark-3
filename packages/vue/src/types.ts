@@ -1,13 +1,6 @@
-import type {
-  MarkdownProcessor,
-  ParseMemory,
-  ParseOptions,
-  ParserPlugin,
-} from '@mark-sorcery/markdown-parser'
+import type { ParseOptions, ParserPlugin } from '@mark-sorcery/markdown-parser'
 import type { Element, Nodes, Text } from 'hast'
 import type { BaseTransitionProps, Component } from 'vue'
-
-export type { MarkdownProcessor, ParseMemory, ParseOptions, ParserPlugin }
 
 /**
  * Configuration forwarded to Vue's `<Transition>` component.

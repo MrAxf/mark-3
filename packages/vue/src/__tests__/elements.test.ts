@@ -1,9 +1,11 @@
 import type { Doctype } from 'hast'
 
 import { flushPromises, mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { markRaw } from 'vue'
 
+import DefaultComponent from '@/components/elements/Default.vue'
+import GenericElement from '@/components/elements/GenericElement.vue'
 import { DEFAULT_COMPONENTS } from '@/components/index.ts'
 import { Markdown } from '@/Markdown.ts'
 import { elementPropertiesToProps } from '@/utils/elementPropertiesToProps.ts'
@@ -91,17 +93,7 @@ describe('DEFAULT_COMPONENTS render integration', () => {
       '[data-mark-sorcery="table"]',
     ]
 
-    // Wait for async element components to resolve before asserting presence markers.
-    await vi.waitFor(() => {
-      for (const selector of expectedSelectors) {
-        expect(wrapper.find(selector).exists()).toBe(true)
-      }
-    })
-
-    // flush 8x to handle deeply-nested async component chains (table > thead > tr > th)
-    for (let i = 0; i < 8; i++) {
-      await flushPromises()
-    }
+    await flushPromises()
 
     for (const selector of expectedSelectors) {
       expect(wrapper.find(selector).exists()).toBe(true)
@@ -115,32 +107,14 @@ describe('DEFAULT_COMPONENTS render integration', () => {
 
 describe('individual element components via NodeListHarness', () => {
   it('renders bold/italic/strikethrough/code/link inside a paragraph', async () => {
-    const [
-      { default: BoldComp },
-      { default: ItalicComp },
-      { default: StrikeComp },
-      { default: CodeComp },
-      { default: LinkComp },
-      { default: ParagraphComp },
-      { default: TextComp },
-    ] = await Promise.all([
-      import('@/components/elements/Bold.vue'),
-      import('@/components/elements/Italic.vue'),
-      import('@/components/elements/Strikethrough.vue'),
-      import('@/components/elements/Code.vue'),
-      import('@/components/elements/Link.vue'),
-      import('@/components/elements/Paragraph.vue'),
-      import('@/components/elements/Text.vue'),
-    ])
-
     const comps = {
-      p: markRaw(ParagraphComp),
-      strong: markRaw(BoldComp),
-      em: markRaw(ItalicComp),
-      del: markRaw(StrikeComp),
-      code: markRaw(CodeComp),
-      a: markRaw(LinkComp),
-      text: markRaw(TextComp),
+      p: markRaw(GenericElement),
+      strong: markRaw(GenericElement),
+      em: markRaw(GenericElement),
+      del: markRaw(GenericElement),
+      code: markRaw(GenericElement),
+      a: markRaw(GenericElement),
+      text: RAW_DEFAULT_COMPONENTS.text,
     }
 
     const wrapper = mount(NodeListHarness, {
@@ -169,16 +143,11 @@ describe('individual element components via NodeListHarness', () => {
   })
 
   it('renders list-item and task-list-input inside a list', async () => {
-    const [{ default: UlComp }, { default: LiComp }, { default: TaskComp }] = await Promise.all([
-      import('@/components/elements/UnorderedList.vue'),
-      import('@/components/elements/ListItem.vue'),
-      import('@/components/elements/TaskListInput.vue'),
-    ])
-
     const comps = {
-      ul: markRaw(UlComp),
-      li: markRaw(LiComp),
-      input: markRaw(TaskComp),
+      ul: markRaw(GenericElement),
+      li: markRaw(GenericElement),
+      input: markRaw(GenericElement),
+      text: RAW_DEFAULT_COMPONENTS.text,
     }
 
     const wrapper = mount(NodeListHarness, {
@@ -203,29 +172,14 @@ describe('individual element components via NodeListHarness', () => {
   })
 
   it('renders full table structure', async () => {
-    const [
-      { default: TableComp },
-      { default: TheadComp },
-      { default: TbodyComp },
-      { default: TrComp },
-      { default: ThComp },
-      { default: TdComp },
-    ] = await Promise.all([
-      import('@/components/elements/Table.vue'),
-      import('@/components/elements/TableHead.vue'),
-      import('@/components/elements/TableBody.vue'),
-      import('@/components/elements/TableRow.vue'),
-      import('@/components/elements/TableHeader.vue'),
-      import('@/components/elements/TableData.vue'),
-    ])
-
     const comps = {
-      table: markRaw(TableComp),
-      thead: markRaw(TheadComp),
-      tbody: markRaw(TbodyComp),
-      tr: markRaw(TrComp),
-      th: markRaw(ThComp),
-      td: markRaw(TdComp),
+      table: markRaw(GenericElement),
+      thead: markRaw(GenericElement),
+      tbody: markRaw(GenericElement),
+      tr: markRaw(GenericElement),
+      th: markRaw(GenericElement),
+      td: markRaw(GenericElement),
+      text: RAW_DEFAULT_COMPONENTS.text,
     }
 
     const wrapper = mount(NodeListHarness, {
@@ -352,35 +306,15 @@ describe('elementPropertiesToProps edge cases', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Heading isNaN branch (rendered via NodeListHarness, not DEFAULT_COMPONENTS)
+// Generic heading rendering
 // ---------------------------------------------------------------------------
 
-describe('Heading component headingLevel computed', () => {
-  it('defaults to level 1 when tagName has no numeric level', async () => {
-    // Register Heading component directly (not as async) for synchronous rendering
-    const { default: HeadingComponent } = await import('@/components/elements/Heading.vue')
-
-    const wrapper = mount(NodeListHarness, {
-      props: {
-        // 'ha' → parseInt('a') → NaN → defaults to 1
-        nodes: [element('ha', {}, [text('Heading')])],
-        components: { ha: HeadingComponent },
-      },
-    })
-
-    await flushPromises()
-
-    expect(wrapper.find('[data-mark-sorcery="heading"]').exists()).toBe(true)
-    expect(wrapper.find('[data-heading-level="1"]').exists()).toBe(true)
-  })
-
+describe('GenericElement heading markers', () => {
   it('sets correct data-heading-level from tagName h1-h6', async () => {
-    const { default: HeadingComponent } = await import('@/components/elements/Heading.vue')
-
     const wrapper = mount(NodeListHarness, {
       props: {
         nodes: [element('h3', {}, [text('Heading 3')])],
-        components: { h3: HeadingComponent },
+        components: { h3: markRaw(GenericElement), text: RAW_DEFAULT_COMPONENTS.text },
       },
     })
 
@@ -400,8 +334,6 @@ describe('Default component fallback', () => {
     // node.type is neither 'text' nor 'element' (e.g. 'doctype').
     const doctypeNode: Doctype = { type: 'doctype' }
 
-    const { default: DefaultComponent } = await import('@/components/elements/Default.vue')
-
     const wrapper = mount(NodeListHarness, {
       props: {
         nodes: [doctypeNode as any],
@@ -412,5 +344,21 @@ describe('Default component fallback', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-mark-sorcery="not-supported"]').exists()).toBe(true)
+  })
+
+  it('renders task list input defaults through GenericElement', async () => {
+    const wrapper = mount(NodeListHarness, {
+      props: {
+        nodes: [element('input', { checked: true })],
+        components: { input: markRaw(GenericElement) },
+      },
+    })
+
+    await flushPromises()
+
+    const input = wrapper.find('[data-mark-sorcery="task-list-input"]')
+    expect(input.exists()).toBe(true)
+    expect(input.attributes('type')).toBe('checkbox')
+    expect(input.attributes()).toHaveProperty('disabled')
   })
 })
