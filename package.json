@@ -3,23 +3,27 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "playground",
+    "playgrounds/*",
     "docs"
   ],
   "scripts": {
-    "build": "bun run build:parser && bun run build:classes && bun run build:vue",
+    "build": "bun run build:parser && bun run build:classes && bun run build:vue && bun run build:react",
     "build:classes": "bun run --filter @mark-sorcery/plugin-add-classes build",
     "build:parser": "bun run --filter @mark-sorcery/markdown-parser build",
+    "build:react": "bun run --filter @mark-sorcery/react build",
     "build:vue": "bun run --filter @mark-sorcery/vue build",
     "fmt": "bun oxfmt .",
     "lint": "bun oxlint .",
-    "playground": "bun run --filter playground dev",
+    "playground": "bun run --filter playground-vue dev",
+    "playground:react": "bun run --filter playground-react dev",
     "publish:classes": "bun run --filter @mark-sorcery/plugin-add-classes prepublishOnly && cd packages/plugin-add-classes && bun publish",
     "publish:parser": "bun run --filter @mark-sorcery/markdown-parser prepublishOnly && cd packages/markdown-parser && bun publish",
+    "publish:react": "bun run --filter @mark-sorcery/react prepublishOnly && cd packages/react && bun publish",
     "publish:vue": "bun run --filter @mark-sorcery/vue prepublishOnly && cd packages/vue && bun publish",
-    "test": "bun run test:classes && bun run test:parser && bun run test:vue",
+    "test": "bun run test:classes && bun run test:parser && bun run test:vue && bun run test:react",
     "test:classes": "bun run --filter @mark-sorcery/plugin-add-classes test",
     "test:parser": "bun run --filter @mark-sorcery/markdown-parser test",
+    "test:react": "bun run --filter @mark-sorcery/react test",
     "test:vue": "bun run --filter @mark-sorcery/vue test"
   },
   "devDependencies": {
