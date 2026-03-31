@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+        "lib": [
+            "ES2020",
+            "DOM",
+            "DOM.Iterable"
+        ],
+        "target": "ES2020",
+        "module": "preserve",
+        "jsx": "react-jsx",
+        "moduleDetection": "force",
+        "moduleResolution": "Bundler",
+        "allowImportingTsExtensions": true,
+        "allowSyntheticDefaultImports": true,
+        "verbatimModuleSyntax": true,
+        "noEmit": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "noFallthroughCasesInSwitch": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx"
+    ],
+    "exclude": [
+        "src/__tests__"
+    ]
+}
